@@ -165,6 +165,13 @@ else:
                     "DPRQuestionEncoderTokenizerFast" if is_tokenizers_available() else None,
                 ),
             ),
+            (
+                "flmr",
+                (
+                    "FLMRQuestionEncoderTokenizer",
+                    "FLMRTokenizerFast" if is_tokenizers_available() else None,
+                ),
+            ),
             ("electra", ("ElectraTokenizer", "ElectraTokenizerFast" if is_tokenizers_available() else None)),
             ("ernie", ("BertTokenizer", "BertTokenizerFast" if is_tokenizers_available() else None)),
             ("ernie_m", ("ErnieMTokenizer" if is_sentencepiece_available() else None, None)),

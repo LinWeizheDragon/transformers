@@ -73,6 +73,7 @@ from . import (
     dit,
     donut,
     dpr,
+    flmr,
     dpt,
     efficientformer,
     efficientnet,

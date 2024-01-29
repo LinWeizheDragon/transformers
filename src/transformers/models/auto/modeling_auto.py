@@ -86,6 +86,7 @@ MODEL_MAPPING_NAMES = OrderedDict(
         ("distilbert", "DistilBertModel"),
         ("donut-swin", "DonutSwinModel"),
         ("dpr", "DPRQuestionEncoder"),
+        ("flmr", "FLMRModelForRetrieval"),
         ("dpt", "DPTModel"),
         ("efficientformer", "EfficientFormerModel"),
         ("efficientnet", "EfficientNetModel"),

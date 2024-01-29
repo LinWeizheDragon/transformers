@@ -397,6 +397,14 @@ _import_structure = {
         "DPRReaderOutput",
         "DPRReaderTokenizer",
     ],
+    "models.flmr": [
+        "FLMR_PRETRAINED_CONFIG_ARCHIVE_MAP",
+        "FLMRConfig",
+        "FLMRContextEncoderTokenizer",
+        "FLMRQuestionEncoderTokenizer",
+        "FLMRReaderOutput",
+        "FLMRReaderTokenizer",
+    ],
     "models.dpt": ["DPT_PRETRAINED_CONFIG_ARCHIVE_MAP", "DPTConfig"],
     "models.efficientformer": [
         "EFFICIENTFORMER_PRETRAINED_CONFIG_ARCHIVE_MAP",
@@ -1167,6 +1175,13 @@ else:
             "DPRContextEncoderTokenizerFast",
             "DPRQuestionEncoderTokenizerFast",
             "DPRReaderTokenizerFast",
+        ]
+    )
+    _import_structure["models.flmr"].extend(
+        [
+            "FLMRContextEncoderTokenizerFast",
+            "FLMRTokenizerFast",
+            "FLMRReaderTokenizerFast",
         ]
     )
     _import_structure["models.electra"].append("ElectraTokenizerFast")
@@ -2051,6 +2066,23 @@ else:
             "DPRPretrainedReader",
             "DPRQuestionEncoder",
             "DPRReader",
+        ]
+    )
+    _import_structure["models.flmr"].extend(
+        [
+            "FLMR_CONTEXT_ENCODER_PRETRAINED_MODEL_ARCHIVE_LIST",
+            "FLMR_QUESTION_ENCODER_PRETRAINED_MODEL_ARCHIVE_LIST",
+            "FLMR_READER_PRETRAINED_MODEL_ARCHIVE_LIST",
+            "FLMRContextEncoder",
+            "FLMRPretrainedContextEncoder",
+            "FLMRPreTrainedModel",
+            "FLMRPretrainedQuestionEncoder",
+            "FLMRPretrainedReader",
+            "FLMRQuestionEncoder",
+            "FLMRReader",
+            "FLMRModelForRetrieval",
+            "FLMRModelForIndexing",
+            "FLMRPretrainedModelForRetrieval",
         ]
     )
     _import_structure["models.dpt"].extend(
@@ -5119,6 +5151,14 @@ if TYPE_CHECKING:
         DPRReaderOutput,
         DPRReaderTokenizer,
     )
+    from .models.flmr import (
+        FLMR_PRETRAINED_CONFIG_ARCHIVE_MAP,
+        FLMRConfig,
+        FLMRContextEncoderTokenizer,
+        FLMRQuestionEncoderTokenizer,
+        FLMRReaderOutput,
+        FLMRReaderTokenizer,
+    )
     from .models.dpt import DPT_PRETRAINED_CONFIG_ARCHIVE_MAP, DPTConfig
     from .models.efficientformer import (
         EFFICIENTFORMER_PRETRAINED_CONFIG_ARCHIVE_MAP,
@@ -5880,6 +5920,11 @@ if TYPE_CHECKING:
             DPRContextEncoderTokenizerFast,
             DPRQuestionEncoderTokenizerFast,
             DPRReaderTokenizerFast,
+        )
+        from .models.flmr import (
+            FLMRContextEncoderTokenizerFast,
+            FLMRTokenizerFast,
+            FLMRReaderTokenizerFast,
         )
         from .models.electra import ElectraTokenizerFast
         from .models.fnet import FNetTokenizerFast
@@ -6653,6 +6698,20 @@ if TYPE_CHECKING:
             DPRPretrainedReader,
             DPRQuestionEncoder,
             DPRReader,
+        )
+        from .models.flmr import (
+            FLMR_CONTEXT_ENCODER_PRETRAINED_MODEL_ARCHIVE_LIST,
+            FLMR_QUESTION_ENCODER_PRETRAINED_MODEL_ARCHIVE_LIST,
+            FLMR_READER_PRETRAINED_MODEL_ARCHIVE_LIST,
+            FLMRContextEncoder,
+            FLMRPretrainedContextEncoder,
+            FLMRPreTrainedModel,
+            FLMRPretrainedQuestionEncoder,
+            FLMRPretrainedReader,
+            FLMRQuestionEncoder,
+            FLMRReader,
+            FLMRModelForRetrieval,
+            FLMRPretrainedModelForRetrieval,
         )
         from .models.dpt import (
             DPT_PRETRAINED_MODEL_ARCHIVE_LIST,
