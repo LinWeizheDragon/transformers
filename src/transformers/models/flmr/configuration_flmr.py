@@ -127,6 +127,12 @@ class FLMRConfig(PretrainedConfig):
         query_concat_output_from_text_encoder: bool = True,
         context_concat_output_from_vision_encoder: bool = False,
         context_concat_output_from_text_encoder: bool = True,
+        use_transformer_mapping_network: bool = False,
+        transformer_mapping_config_base: str = None,
+        transformer_mapping_num_hidden_layers: int = None,
+        load_cpu_extension: bool = False,
+        mask_instruction_token: str = None,
+        transformer_mapping_cross_attention_length: int = 32,
         **kwargs,
     ):
         super().__init__(pad_token_id=pad_token_id, **kwargs)
@@ -159,4 +165,11 @@ class FLMRConfig(PretrainedConfig):
         self.query_concat_output_from_text_encoder = query_concat_output_from_text_encoder
         self.context_concat_output_from_vision_encoder = context_concat_output_from_vision_encoder
         self.context_concat_output_from_text_encoder = context_concat_output_from_text_encoder
+        self.use_transformer_mapping_network = use_transformer_mapping_network
+        self.transformer_mapping_config_base = transformer_mapping_config_base
+        self.transformer_mapping_num_hidden_layers = transformer_mapping_num_hidden_layers
+        self.load_cpu_extension = load_cpu_extension
+        self.mask_instruction_token = mask_instruction_token
+        self.transformer_mapping_cross_attention_length = transformer_mapping_cross_attention_length
+
 

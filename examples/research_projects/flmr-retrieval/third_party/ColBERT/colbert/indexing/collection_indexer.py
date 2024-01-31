@@ -31,13 +31,8 @@ from colbert.indexing.codecs.residual import ResidualCodec
 from transformers import FLMRModelForRetrieval, FLMRModelForIndexing
 
 def encode(config, collection, shared_lists, shared_queues):
-    encoder = CollectionIndexer(config=config, collection=collection)
+    encoder = CollectionIndexer(config=config, collection=collection)    
     encoder.run(shared_lists)
-
-# def multimodal_encode(config, collection, shared_lists, shared_queues):
-#     encoder = CollectionIndexer(config=config, collection=collection)
-#     encoder.run(shared_lists)
-
 class CollectionIndexer():
     def __init__(self, config: ColBERTConfig, collection):
         self.config = config

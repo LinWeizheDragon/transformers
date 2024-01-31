@@ -83,7 +83,7 @@ def query_index(args, ds, passage_contents, flmr_model: FLMRModelForRetrieval):
                 "pixel_values": pixel_values,
             }
             query_embeddings = flmr_model.query(**query_input).late_interaction_output
-            # print("query_embeddings:", query_embeddings.shape)
+            print("query_embeddings:", query_embeddings.shape)
             query_embeddings = query_embeddings.detach().cpu()
 
             # search
@@ -95,7 +95,8 @@ def query_index(args, ds, passage_contents, flmr_model: FLMRModelForRetrieval):
                 query_embeddings, 
                 progress=False, 
                 batch_size=args.centroid_search_batch_size, 
-                k=max(Ks)
+                k=max(Ks),
+                remove_zero_tensors=True, # For PreFLMR, this is needed
             )
             
             ranking_dict = ranking.todict()
@@ -152,11 +153,6 @@ def main(args):
 
     def add_path_prefix_in_img_path(example, prefix):
         example["img_path"] = os.path.join(prefix, example["img_path"])
-        new_ROIs = []
-        for ROI in example['ROIs']:
-            ROI = os.path.join(prefix, ROI)
-            new_ROIs.append(ROI)
-        example['ROIs'] = new_ROIs
         return example
     
     ds = ds.map(add_path_prefix_in_img_path, fn_kwargs={"prefix": args.image_root_dir})
@@ -172,7 +168,8 @@ def main(args):
     print("========= Indexing =========")
     # Run indexing on passages
     passage_contents = passage_ds['passage_content']
-    passage_contents = ["<BOK> " + passage + " <EOK>" for passage in passage_contents]
+    # passage_contents =['<BOK> ' + passage + ' <EOK>' for passage in passage_contents]
+
     if args.run_indexing:
         ## Call ColBERT indexing to index passages
         index_corpus(args, passage_contents)
@@ -191,68 +188,33 @@ def main(args):
 
     print("========= Preparing query input =========")
     
-    def prepare_inputs(sample, num_ROIs=9):
+    instructions = [
+        "Using the provided image, obtain documents that address the subsequent question: ",
+        "Retrieve documents that provide an answer to the question alongside the image: ",
+        "Extract documents linked to the question provided in conjunction with the image: ",
+        "Utilizing the given image, obtain documents that respond to the following question: ",
+        "Using the given image, access documents that provide insights into the following question: ",
+        "Obtain documents that correspond to the inquiry alongside the provided image: ",
+        "With the provided image, gather documents that offer a solution to the question: ",
+        "Utilizing the given image, obtain documents that respond to the following question: ",
+    ]
+    import random
+
+    def prepare_inputs(sample):
         sample = EasyDict(sample)
 
         module = EasyDict({"type": "QuestionInput",  "option": "default", 
-                        "separation_tokens": {'start': '<BOQ>', 'end': '<EOQ>'}})
-        text_sequence =  ' '.join([module.separation_tokens.start] + [sample.question] + [module.separation_tokens.end])
-        
-        module = EasyDict({"type": "TextBasedVisionInput",  "option": "object", 
-                        "object_max": 40, "attribute_max": 3, "attribute_thres":0.05, "ocr": 1,
-                        "separation_tokens": {'start': '<BOV>', 'sep': '<SOV>', 'end': '<EOV>'}})
-        
-        vision_sentences = []
-        vision_sentences += [module.separation_tokens.start]
-        for obj in sample.objects:
-            attribute_max = module.get('attribute_max', 0)
-            if attribute_max > 0:
-                # find suitable attributes
-                suitable_attributes = []
-                for attribute, att_score in zip(obj['attributes'], obj['attribute_scores']):
-                    if att_score > module.attribute_thres and len(suitable_attributes) < attribute_max:
-                        suitable_attributes.append(attribute)
-                # append to the sentence
-                vision_sentences += suitable_attributes
-            vision_sentences.append(obj['class'])
-            vision_sentences.append(module.separation_tokens.sep)
-        
-        ocr = module.get('ocr', 0)
-        if ocr > 0:
-            text_annotations = sample.img_ocr
-            filtered_descriptions = []
-            for text_annoation in text_annotations:
-                description = text_annoation['description'].strip()
-                description = description.replace('\n', " ") # remove line switching
-                # vision_sentences += [description]
-                # print('OCR feature:', description)
-                if description not in filtered_descriptions:
-                    filtered_descriptions.append(description)
-            # print('OCR feature:', filtered_descriptions)
-            vision_sentences += filtered_descriptions
+                        "separation_tokens": {'start': '', 'end': ''}})
 
-        vision_sentences += [module.separation_tokens.end]
-        text_sequence = text_sequence + " " + ' '.join(vision_sentences)
+        random_instruction = random.choice(instructions)
+        text_sequence =  ' '.join([random_instruction] + [module.separation_tokens.start] + [sample.question] + [module.separation_tokens.end])
         
-        module = EasyDict({"type": "TextBasedVisionInput",  "option": "caption",
-                        "separation_tokens": {'start': '<BOC>', 'end': '<EOC>'}})
-        if isinstance(sample.img_caption, dict):
-            caption = sample.img_caption['caption']
-        else:
-            caption = sample.img_caption
-        text_sequence = text_sequence + " " + ' '.join([module.separation_tokens.start] + [caption] + [module.separation_tokens.end])
-
         sample["text_sequence"] = text_sequence
-
-        # Take the first num_ROIs if there are more than num_ROIs ROIs
-        if num_ROIs > len(sample["ROIs"]):
-            sample["ROIs"] = sample["ROIs"] + [sample["ROIs"][-1]] * (num_ROIs - len(sample["ROIs"]))
-        sample["ROIs"] = sample["ROIs"][:num_ROIs]
 
         return sample
 
     # Prepare inputs using the same configuration as in the original FLMR paper
-    ds = ds.map(prepare_inputs)
+    ds = ds.map(prepare_inputs, load_from_cache_file=False)
     
     def tokenize_inputs(examples, query_tokenizer, image_processor):
         encoding = query_tokenizer(examples["text_sequence"])
@@ -260,30 +222,9 @@ def main(args):
         examples['attention_mask'] = encoding['attention_mask']
 
         pixel_values = []
-        for img_path, ROIs in zip(examples["img_path"], examples["ROIs"]):
+        for img_path in examples["img_path"]:
             image = Image.open(img_path).convert("RGB")
-            all_images = [image]
-            for ROI in ROIs:
-                # parse the ROI. The ROI is formatted as {img_path}|||{class}_{xmin}_{ymin}_{xmax}_{ymax}
-                img_path, remaining = ROI.split("|||")
-                img = Image.open(img_path).convert("RGB")
-                class_name, xmin, ymin, xmax, ymax = remaining.split("_")
-                xmin, ymin, xmax, ymax = float(xmin), float(ymin), float(xmax), float(ymax)
-                crop = (xmin, ymin, xmax, ymax)
-                # if the size of the crop is too small, enlarge the crop to at least 5 pixels in size
-                if xmax - xmin < 5 and ymax - ymin < 5:
-                    if xmax - xmin < 5:
-                        xmin = max(0, xmin - 2.5)
-                        xmax = min(img.size[0], xmax + 2.5)
-                    if ymax - ymin < 5:
-                        ymin = max(0, ymin - 2.5)
-                        ymax = min(img.size[1], ymax + 2.5)
-                    print("enlarged: ", crop, (xmin, ymin, xmax, ymax))
-                    crop = (xmin, ymin, xmax, ymax)
-                
-                all_images.append(img.crop(crop))
-
-            encoded = image_processor(all_images, return_tensors='pt')
+            encoded = image_processor(image, return_tensors='pt')
             pixel_values.append(encoded.pixel_values)
 
         pixel_values = torch.stack(pixel_values, dim=0)
@@ -298,6 +239,7 @@ def main(args):
         },
         batched=True, batch_size=8, num_proc=16)
     
+
     print("========= Querying =========")
     ds = query_index(args, ds, passage_contents, flmr_model)
     # Compute final recall

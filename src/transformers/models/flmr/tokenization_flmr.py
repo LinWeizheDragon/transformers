@@ -134,6 +134,7 @@ class FLMRContextEncoderTokenizer(BertTokenizer):
         **kwargs,
     ):
         super().__init__(
+            doc_maxlen=doc_maxlen,
             **kwargs,
         )
 
@@ -211,9 +212,10 @@ class FLMRQuestionEncoderTokenizer(BertTokenizer):
         attend_to_mask_tokens: Optional[bool] = False,
         **kwargs,
     ):
-        logger.info("Initializing FLMRQuestionEncoder")
-
+        
         super().__init__(
+            query_maxlen=query_maxlen,
+            attend_to_mask_tokens=attend_to_mask_tokens,
             **kwargs,
         )
 
@@ -233,7 +235,7 @@ class FLMRQuestionEncoderTokenizer(BertTokenizer):
             bsize: Optional[bool] = None, 
             padding: Optional[Union[str, bool]] = 'max_length', 
             truncation: Optional[Union[bool, str]] = True,
-            max_length: Optional[int] = 32,
+            max_length: Optional[int] = None,
             return_tensors: Optional[Union[str, TensorType]] = 'pt',
             **kwargs
         ):
@@ -242,8 +244,11 @@ class FLMRQuestionEncoderTokenizer(BertTokenizer):
         # add placehold for the [Q] marker
         text = ['. ' + x for x in text]
 
-        if max_length > self.query_maxlen:
-            # can not exceed the pre-set length
+        if max_length is not None:
+            # use user specified max_length
+            pass
+        else:
+            # use default max length
             max_length = self.query_maxlen
 
         encoding = super().__call__(text, 

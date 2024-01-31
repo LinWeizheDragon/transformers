@@ -21,7 +21,7 @@ from typing import List, Optional, Union
 from ...tokenization_utils_base import BatchEncoding
 from ...utils import TensorType, add_end_docstrings, add_start_docstrings, logging
 from ..bert.tokenization_bert_fast import BertTokenizerFast
-from .tokenization_flmr import FLMRContextEncoderTokenizer, FLMRTokenizer, FLMRReaderTokenizer
+from .tokenization_flmr import FLMRContextEncoderTokenizer, FLMRQuestionEncoderTokenizer, FLMRReaderTokenizer
 
 
 logger = logging.get_logger(__name__)
@@ -142,7 +142,7 @@ class FLMRTokenizerFast(BertTokenizerFast):
     pretrained_vocab_files_map = QUESTION_ENCODER_PRETRAINED_VOCAB_FILES_MAP
     max_model_input_sizes = QUESTION_ENCODER_PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES
     pretrained_init_configuration = QUESTION_ENCODER_PRETRAINED_INIT_CONFIGURATION
-    slow_tokenizer_class = FLMRTokenizer
+    slow_tokenizer_class = FLMRQuestionEncoderTokenizer
 
 
 FLMRSpanPrediction = collections.namedtuple(
