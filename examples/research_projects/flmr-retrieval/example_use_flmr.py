@@ -21,7 +21,7 @@ from colbert import Indexer
 from colbert.data import Queries
 from colbert import Searcher
 
-from transformers import FLMRQuestionEncoderTokenizer, FLMRContextEncoderTokenizer
+from transformers import FLMRQueryEncoderTokenizer, FLMRContextEncoderTokenizer
 from transformers import FLMRModelForRetrieval
 from transformers import AutoImageProcessor
 
@@ -83,7 +83,6 @@ def query_index(args, ds, passage_contents, flmr_model: FLMRModelForRetrieval):
                 "pixel_values": pixel_values,
             }
             query_embeddings = flmr_model.query(**query_input).late_interaction_output
-            # print("query_embeddings:", query_embeddings.shape)
             query_embeddings = query_embeddings.detach().cpu()
 
             # search
@@ -142,9 +141,9 @@ def query_index(args, ds, passage_contents, flmr_model: FLMRModelForRetrieval):
         return ds
 
 def main(args):
-
-    ds = DatasetDict.load_from_disk(args.dataset_path)
-    passage_ds = DatasetDict.load_from_disk(args.passage_dataset_path)
+    from datasets import load_dataset
+    ds = load_dataset(args.dataset_path)
+    passage_ds = load_dataset(args.passage_dataset_path)
 
     print("========= Loading dataset =========")
     print(ds)
@@ -180,8 +179,8 @@ def main(args):
         print("args.run_indexing is False, skipping indexing...")
 
     print("========= Loading pretrained model =========")
-    query_tokenizer = FLMRQuestionEncoderTokenizer.from_pretrained(os.path.join(args.checkpoint_path, "query_tokenizer"))
-    context_tokenizer = FLMRContextEncoderTokenizer.from_pretrained(os.path.join(args.checkpoint_path, "context_tokenizer"))
+    query_tokenizer = FLMRQueryEncoderTokenizer.from_pretrained(args.checkpoint_path, subfolder="query_tokenizer")
+    context_tokenizer = FLMRContextEncoderTokenizer.from_pretrained(args.checkpoint_path, subfolder="context_tokenizer")
     
     flmr_model = FLMRModelForRetrieval.from_pretrained(args.checkpoint_path, 
                                                         query_tokenizer=query_tokenizer, 
@@ -298,6 +297,7 @@ def main(args):
         },
         batched=True, batch_size=8, num_proc=16)
     
+
     print("========= Querying =========")
     ds = query_index(args, ds, passage_contents, flmr_model)
     # Compute final recall
@@ -314,7 +314,6 @@ def main(args):
     print("Done! Program exiting...")
 
 if __name__ == '__main__':
-    
     # Initialize arg parser
     import argparse
     parser = argparse.ArgumentParser()
@@ -340,7 +339,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     """
     Example usage:
-    python example_use_pretrained_flmr.py \
+    python example_use_flmr.py \
             --use_gpu --run_indexing \
             --index_root_path "." \
             --index_name OKVQA_GS\

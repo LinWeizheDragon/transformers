@@ -28,7 +28,7 @@ from colbert.utils.utils import flatten, print_message
 from colbert.indexing.codecs.residual import ResidualCodec
 
 
-from transformers import FLMRModelForRetrieval, FLMRModelForIndexing
+from colbert.modeling.modeling_flmr_for_indexing import FLMRModelForIndexing
 
 def encode(config, collection, shared_lists, shared_queues):
     encoder = CollectionIndexer(config=config, collection=collection)    
@@ -46,8 +46,8 @@ class CollectionIndexer():
         self.collection = Collection.cast(collection)
         # self.checkpoint = Checkpoint(self.config.checkpoint, colbert_config=self.config)
         from transformers import FLMRQuestionEncoderTokenizer, FLMRContextEncoderTokenizer
-        query_tokenizer = FLMRQuestionEncoderTokenizer.from_pretrained(self.config.checkpoint + "/query_tokenizer")
-        context_tokenizer = FLMRContextEncoderTokenizer.from_pretrained(self.config.checkpoint + "/context_tokenizer")
+        query_tokenizer = FLMRQueryEncoderTokenizer.from_pretrained(self.config.checkpoint, subfolder="query_tokenizer")
+        context_tokenizer = FLMRContextEncoderTokenizer.from_pretrained(self.config.checkpoint, subfolder="context_tokenizer")
         self.checkpoint = FLMRModelForIndexing.from_pretrained(self.config.checkpoint, 
                                                                 query_tokenizer=query_tokenizer, 
                                                                 context_tokenizer=context_tokenizer)

@@ -191,11 +191,11 @@ class FLMRContextEncoderTokenizer(BertTokenizer):
         return encoding
 
 
-class FLMRQuestionEncoderTokenizer(BertTokenizer):
+class FLMRQueryEncoderTokenizer(BertTokenizer):
     r"""
-    Constructs a FLMRQuestionEncoder tokenizer.
+    Constructs a FLMRQueryEncoder tokenizer.
 
-    [`FLMRQuestionEncoder`] is identical to [`BertTokenizer`] and runs end-to-end tokenization: punctuation
+    [`FLMRQueryEncoder`] is identical to [`BertTokenizer`] and runs end-to-end tokenization: punctuation
     splitting and wordpiece.
 
     Refer to superclass [`BertTokenizer`] for usage examples and documentation concerning parameters.

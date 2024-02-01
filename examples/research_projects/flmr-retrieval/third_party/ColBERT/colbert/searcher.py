@@ -16,7 +16,7 @@ from colbert.infra.launcher import print_memory_stats
 
 import time
 
-from transformers import FLMRModelForRetrieval, FLMRModelForIndexing
+from colbert.modeling.modeling_flmr_for_indexing import FLMRModelForIndexing
 
 TextQueries = Union[str, 'list[str]', 'dict[int, str]', Queries]
 
@@ -39,10 +39,9 @@ class Searcher:
         self.collection = Collection.cast(collection or self.config.collection)
         self.configure(checkpoint=self.checkpoint, collection=self.collection)
 
-        # self.checkpoint = Checkpoint(self.checkpoint, colbert_config=self.config)
-        from transformers import FLMRQuestionEncoderTokenizer, FLMRContextEncoderTokenizer
-        query_tokenizer = FLMRQuestionEncoderTokenizer.from_pretrained(self.config.checkpoint + "/query_tokenizer")
-        context_tokenizer = FLMRContextEncoderTokenizer.from_pretrained(self.config.checkpoint + "/context_tokenizer")
+        from transformers import FLMRQueryEncoderTokenizer, FLMRContextEncoderTokenizer
+        query_tokenizer = FLMRQueryEncoderTokenizer.from_pretrained(self.config.checkpoint, subfolder="query_tokenizer")
+        context_tokenizer = FLMRContextEncoderTokenizer.from_pretrained(self.config.checkpoint, subfolder="context_tokenizer")
         self.checkpoint = FLMRModelForIndexing.from_pretrained(self.config.checkpoint, 
                                                                 query_tokenizer=query_tokenizer, 
                                                                 context_tokenizer=context_tokenizer)

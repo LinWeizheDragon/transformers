@@ -400,10 +400,10 @@ _import_structure = {
     "models.flmr": [
         "FLMR_PRETRAINED_CONFIG_ARCHIVE_MAP",
         "FLMRConfig",
+        "FLMRVisionConfig",
+        "FLMRTextConfig",
         "FLMRContextEncoderTokenizer",
-        "FLMRQuestionEncoderTokenizer",
-        "FLMRReaderOutput",
-        "FLMRReaderTokenizer",
+        "FLMRQueryEncoderTokenizer",
     ],
     "models.dpt": ["DPT_PRETRAINED_CONFIG_ARCHIVE_MAP", "DPTConfig"],
     "models.efficientformer": [
@@ -5155,7 +5155,7 @@ if TYPE_CHECKING:
         FLMR_PRETRAINED_CONFIG_ARCHIVE_MAP,
         FLMRConfig,
         FLMRContextEncoderTokenizer,
-        FLMRQuestionEncoderTokenizer,
+        FLMRQueryEncoderTokenizer,
         FLMRReaderOutput,
         FLMRReaderTokenizer,
     )

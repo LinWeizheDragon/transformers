@@ -21,7 +21,7 @@ from colbert import Indexer
 from colbert.data import Queries
 from colbert import Searcher
 
-from transformers import FLMRQuestionEncoderTokenizer, FLMRContextEncoderTokenizer
+from transformers import FLMRQueryEncoderTokenizer, FLMRContextEncoderTokenizer
 from transformers import FLMRModelForRetrieval
 from transformers import AutoImageProcessor
 
@@ -83,7 +83,6 @@ def query_index(args, ds, passage_contents, flmr_model: FLMRModelForRetrieval):
                 "pixel_values": pixel_values,
             }
             query_embeddings = flmr_model.query(**query_input).late_interaction_output
-            print("query_embeddings:", query_embeddings.shape)
             query_embeddings = query_embeddings.detach().cpu()
 
             # search
@@ -130,7 +129,7 @@ def query_index(args, ds, passage_contents, flmr_model: FLMRModelForRetrieval):
         flmr_model = flmr_model.to("cuda")
         print("Starting encoding...")
         Ks = args.Ks
-        ds = ds.select(range(100))
+        # ds = ds.select(range(2000, 2100))
         ds = ds.map(
             encode_and_search_batch, 
             fn_kwargs={"Ks": Ks},
@@ -143,9 +142,9 @@ def query_index(args, ds, passage_contents, flmr_model: FLMRModelForRetrieval):
         return ds
 
 def main(args):
-
-    ds = DatasetDict.load_from_disk(args.dataset_path)
-    passage_ds = DatasetDict.load_from_disk(args.passage_dataset_path)
+    from datasets import load_dataset
+    ds = load_dataset(args.dataset_path)
+    passage_ds = load_dataset(args.passage_dataset_path)
 
     print("========= Loading dataset =========")
     print(ds)
@@ -177,8 +176,8 @@ def main(args):
         print("args.run_indexing is False, skipping indexing...")
 
     print("========= Loading pretrained model =========")
-    query_tokenizer = FLMRQuestionEncoderTokenizer.from_pretrained(os.path.join(args.checkpoint_path, "query_tokenizer"))
-    context_tokenizer = FLMRContextEncoderTokenizer.from_pretrained(os.path.join(args.checkpoint_path, "context_tokenizer"))
+    query_tokenizer = FLMRQueryEncoderTokenizer.from_pretrained(args.checkpoint_path, subfolder="query_tokenizer")
+    context_tokenizer = FLMRContextEncoderTokenizer.from_pretrained(args.checkpoint_path, subfolder="context_tokenizer")
     
     flmr_model = FLMRModelForRetrieval.from_pretrained(args.checkpoint_path, 
                                                         query_tokenizer=query_tokenizer, 
@@ -214,7 +213,7 @@ def main(args):
         return sample
 
     # Prepare inputs using the same configuration as in the original FLMR paper
-    ds = ds.map(prepare_inputs, load_from_cache_file=False)
+    ds = ds.map(prepare_inputs)
     
     def tokenize_inputs(examples, query_tokenizer, image_processor):
         encoding = query_tokenizer(examples["text_sequence"])
@@ -256,7 +255,6 @@ def main(args):
     print("Done! Program exiting...")
 
 if __name__ == '__main__':
-    
     # Initialize arg parser
     import argparse
     parser = argparse.ArgumentParser()
@@ -282,22 +280,21 @@ if __name__ == '__main__':
     args = parser.parse_args()
     """
     Example usage:
-    python example_use_pretrained_flmr.py \
-            --use_gpu --run_indexing \
+    python example_use_preflmr.py \
+            --use_gpu \
             --index_root_path "." \
-            --index_name OKVQA_GS\
-            --experiment_name OKVQA_GS \
+            --index_name EVQA_PreFLMR_ViT-G \
+            --experiment_name EVQA \
             --indexing_batch_size 64 \
-            --image_root_dir /home/wl356/cvnlp_rds/shared_space/vqa_data/KBVQA_data/ok-vqa/ \
-            --dataset_path OKVQA_FLMR_prepared_data.hf \
-            --passage_dataset_path OKVQA_FLMR_prepared_passages_with_GoogleSearch_corpus.hf \
+            --image_root_dir /rds/project/rds-hirYTW1FQIw/shared_space/vqa_data/KBVQA_data/EVQA/eval_image/ \
+            --dataset_path LinWeizheDragon/EVQA_PreFLMR_preprocessed_data \
+            --passage_dataset_path LinWeizheDragon/EVQA_PreFLMR_preprocessed_passages \
             --use_split test \
             --nbits 8 \
             --Ks 1 5 10 20 50 100 \
-            --checkpoint_path ./converted_flmr \
-            --image_processor_name openai/clip-vit-base-patch32 \
+            --checkpoint_path LinWeizheDragon/PreFLMR_ViT-G \
+            --image_processor_name laion/CLIP-ViT-bigG-14-laion2B-39B-b160k \
             --query_batch_size 8 \
-            --num_ROIs 9 \
     """
     main(args)
     
