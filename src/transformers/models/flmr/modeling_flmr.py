@@ -817,6 +817,10 @@ class FLMRModelForRetrieval(FLMRPretrainedModelForRetrieval):
             concat_output_from_vision_encoder: Optional[bool] = None,
             concat_output_from_text_encoder: Optional[bool] = None,
         ):
+        r"""
+        Returns:
+
+        """
 
         if concat_output_from_vision_encoder is None:
             concat_output_from_vision_encoder = self.config.query_concat_output_from_vision_encoder
@@ -916,7 +920,10 @@ class FLMRModelForRetrieval(FLMRPretrainedModelForRetrieval):
             keep_dims: Optional[bool] = True,
             return_mask: Optional[bool] = True,
         ):
+        r"""
+        Returns:
 
+        """
         assert keep_dims in [True, False]
 
         if concat_output_from_vision_encoder is None:
