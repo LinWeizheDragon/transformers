@@ -168,7 +168,7 @@ else:
             (
                 "flmr",
                 (
-                    "FLMRQuestionEncoderTokenizer",
+                    "FLMRQueryEncoderTokenizer",
                     "FLMRTokenizerFast" if is_tokenizers_available() else None,
                 ),
             ),

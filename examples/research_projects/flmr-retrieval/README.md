@@ -4,14 +4,25 @@ Example Use of FLMR
 
 Create virtualenv:
 ```
-conda create -n FLMR python=3.8
-conda activate FLMR
+conda create -n FLMR_new python=3.10 -y
+conda activate FLMR_new
 ```
 Install Pytorch:
 ```
-pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113
-pip install torch==1.12.1+cu113 torchvision==0.13.1+cu113 torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cu113
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
+
+Install faiss
+
+```
+conda install -c pytorch -c nvidia faiss-gpu=1.7.4 mkl=2021 blas=1.0=mkl
+```
+
+Test if faiss generate error
+```
+python -c "import faiss"
+```
+
 Install transformers from this folder
 ```
 cd ../../..
@@ -19,19 +30,20 @@ pip install -e .
 ```
 Install ColBERT engine
 ```
-cd third_party/ColBERT
+cd examples/research_projects/flmr-retrieval/third_party/ColBERT
 pip install -e .
 ```
 
 Install other dependencies
 ```
-pip install ujson gitpython easydict ninja
+pip install ujson gitpython easydict ninja datasets
 ```
 
 ## Use PreFLMR
 ```
 cd transformers/examples/research_projects/flmr-retrieval/
 ```
+
 ```
 python example_use_preflmr.py \
             --use_gpu \
@@ -48,4 +60,5 @@ python example_use_preflmr.py \
             --checkpoint_path LinWeizheDragon/PreFLMR_ViT-G \
             --image_processor_name laion/CLIP-ViT-bigG-14-laion2B-39B-b160k \
             --query_batch_size 8 \
+            --run_indexing
 ```
