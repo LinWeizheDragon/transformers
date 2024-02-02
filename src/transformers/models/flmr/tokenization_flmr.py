@@ -118,8 +118,6 @@ class FLMRContextEncoderTokenizer(BertTokenizer):
     def __call__(
             self, 
             text: List[str], 
-            image_features: Optional[torch.Tensor] = None, 
-            bsize: Optional[bool] = None, 
             padding: Optional[Union[str, bool]] = 'max_length', 
             truncation: Optional[Union[bool, str]]='longest_first',
             max_length: Optional[int] = 512,
@@ -146,16 +144,16 @@ class FLMRContextEncoderTokenizer(BertTokenizer):
         # postprocess for the [D] marker
         ids[:, 1] = self.D_marker_token_id
 
-        if bsize:
-            # This bsize function is used in the original ColBERT codebase to split inputs into multiple batches
-            if image_features is not None:
-                ids, mask, image_features, reverse_indices = _sort_by_length(ids, mask, bsize, image_features=image_features)
-                batches = _split_into_batches(ids, mask, bsize, image_features=image_features)
-            else:
-                ids, mask, reverse_indices = _sort_by_length(ids, mask, bsize)
-                batches = _split_into_batches(ids, mask, bsize)
+        # if bsize:
+        #     # This bsize function is used in the original ColBERT codebase to split inputs into multiple batches
+        #     if image_features is not None:
+        #         ids, mask, image_features, reverse_indices = _sort_by_length(ids, mask, bsize, image_features=image_features)
+        #         batches = _split_into_batches(ids, mask, bsize, image_features=image_features)
+        #     else:
+        #         ids, mask, reverse_indices = _sort_by_length(ids, mask, bsize)
+        #         batches = _split_into_batches(ids, mask, bsize)
             
-            return batches, reverse_indices
+        #     return batches, reverse_indices
 
         encoding["input_ids"] = ids
         encoding["attention_mask"] = mask
