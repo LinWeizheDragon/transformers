@@ -59,20 +59,12 @@ from .flmr_utils import (
 logger = logging.get_logger(__name__)
 
 _CONFIG_FOR_DOC = "FLMRConfig"
-_CHECKPOINT_FOR_DOC = "weizhelin/flmr"
+_CHECKPOINT_FOR_DOC = "BByrneLab/PreFLMR_ViT-G"
+
 
 FLMR_PRETRAINED_MODEL_ARCHIVE_LIST = [
-    "weizhelin/flmr",
-    # See all FLMR models at https://huggingface.co/models?filter=flmr
-]
-
-FLMR_PRETRAINED_MODEL_ARCHIVE_LIST = [
-    "weizhelin/flmr",
-    # See all FLMR models at https://huggingface.co/models?filter=flmr
-]
-
-FLMR_PRETRAINED_MODEL_ARCHIVE_LIST = [
-    "weizhelin/flmr",
+    "BByrneLab/PreFLMR_ViT-G",
+    "BByrneLab/FLMR",
     # See all FLMR models at https://huggingface.co/models?filter=flmr
 ]
 
@@ -128,15 +120,17 @@ class FLMRModelForRetrievalOutput(ModelOutput):
     Class for outputs of [`FLMRModelForRetrieval.query()`].
 
     Args:
+        loss (`torch.FloatTensor`): 
+            contrastive loss of the input queries and positive and negative examples. This output is to be used in model training.
         scores (`torch.FloatTensor` of shape `(batch_size, num_positive_examples + num_negative_examples)`):
-            The FLMR encoder outputs the *scores* that corresponds to the late-interaction scores of the input query and context. Each query is associated with `num_positive_examples` positive examples and `num_negative_examples` negative examples, and the scores are the late-interaction scores of the query and these examples.
+            The FLMR model outputs the *scores* that corresponds to the late-interaction scores of the input query and context. Each query is associated with `num_positive_examples` positive examples and `num_negative_examples` negative examples, and the scores are the late-interaction scores of the query and these examples.
         in_batch_negative_loss (`torch.FloatTensor` of shape `(batch_size, query_embedding_length, embeddings_size)`):
-            The FLMR encoder outputs the *late_interaction_output* that corresponds to the question representation. The embeddings of all tokens are included for late interaction retrieval.
-            This output is to be used to embed questions for late-interaction retrieval with context embeddings.
+            The FLMR model outputs the *in_batch_negative_loss* which computes contrastive loss that includes in-batch negatives. For each positive example, all other examples in the batch except itself are considered negative examples in computing the contrastive loss. This improves ultimate performance in practice. This output is to be used in model training.
     """
 
-    pooler_output: torch.FloatTensor
-    late_interaction_output: torch.FloatTensor = None
+    loss: torch.FloatTensor
+    scores: torch.FloatTensor = None
+    in_batch_negative_loss: torch.FloatTensor = None
 
 
 
@@ -159,72 +153,6 @@ class FLMRPreTrainedModel(PreTrainedModel):
             module.weight.data.fill_(1.0)
 
 
-class FLMRTextModel(FLMRPreTrainedModel):
-    base_model_prefix = "flmr_text_model"
-
-    def __init__(self, config: FLMRTextConfig):
-        super().__init__(config)
-        self.bert_model = BertModel(config, add_pooling_layer=True)
-        if self.bert_model.config.hidden_size <= 0:
-            raise ValueError("Encoder hidden_size can't be zero")
-        self.projection_dim = config.projection_dim
-        if self.projection_dim > 0:
-            self.encode_proj = nn.Linear(self.bert_model.config.hidden_size, config.projection_dim)
-        # Initialize weights and apply final processing
-        self.post_init()
-
-    def forward(
-        self,
-        input_ids: Tensor,
-        attention_mask: Optional[Tensor] = None,
-        token_type_ids: Optional[Tensor] = None,
-        inputs_embeds: Optional[Tensor] = None,
-        output_attentions: bool = False,
-        output_hidden_states: bool = False,
-        return_dict: bool = False,
-    ) -> Union[BaseModelOutputWithPooling, Tuple[Tensor, ...]]:
-        outputs = self.bert_model(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            token_type_ids=token_type_ids,
-            inputs_embeds=inputs_embeds,
-            output_attentions=output_attentions,
-            output_hidden_states=output_hidden_states,
-            return_dict=return_dict,
-        )
-        sequence_output = outputs[0]
-        pooled_output = sequence_output[:, 0, :]
-
-        if self.projection_dim > 0:
-            pooled_output = self.encode_proj(pooled_output)
-
-        if not return_dict:
-            return (sequence_output, pooled_output) + outputs[2:]
-
-        return BaseModelOutputWithPooling(
-            last_hidden_state=sequence_output,
-            pooler_output=pooled_output,
-            hidden_states=outputs.hidden_states,
-            attentions=outputs.attentions,
-        )
-
-    @property
-    def embeddings_size(self) -> int:
-        if self.projection_dim > 0:
-            return self.encode_proj.out_features
-        return self.bert_model.config.hidden_size
-
-
-
-class FLMRVisionModel(FLMRPreTrainedModel):
-    base_model_prefix = "flmr_vision_model"
-
-    def __init__(self, config: FLMRVisionConfig):
-        super().__init__(config)
-        self.vision_model = CLIPVisionModel(config)
-
-    def forward(self, *args, **kwargs):
-        return self.vision_model(*args, **kwargs)
 
 ##################
 # PreTrainedModel
@@ -267,7 +195,169 @@ FLMR_START_DOCSTRING = r"""
             The context tokenizer can be initialized with `FLMRContextEncoderTokenizer.from_pretrained(pretrained_model_name_or_path)`.
 """
 
-FLMR_ENCODERS_INPUTS_DOCSTRING = r"""
+
+FLMR_MODEL_INPUTS_DOCSTRING = r"""
+    Args:
+        query_input_ids (`torch.LongTensor` of shape `(batch_size, query_length)`):
+            Indices of input query tokens in the vocabulary. To match pretraining, FLMR input sequence should be
+            formatted with [CLS] and Q marker tokens as follows:
+            [CLS] [unused0] using the provided image, obtain documents that address the subsequent question : what is the capital of france? [SEP] [MASK] [MASK] [MASK] [MASK] [MASK] [MASK] [MASK] [MASK] [MASK] ...
+
+            FLMR is a model with absolute position embeddings so it's usually advised to pad the inputs on the right
+            rather than the left.
+
+            Indices can be obtained using [`AutoTokenizer`]. See [`PreTrainedTokenizer.encode`] and
+            [`PreTrainedTokenizer.__call__`] for details.
+
+            [What are input IDs?](../glossary#input-ids)
+        query_attention_mask (`torch.FloatTensor` of shape `(batch_size, query_length)`, *optional*):
+            Mask to avoid performing attention on padding token indices. Mask values selected in `[0, 1]`:
+
+            - 1 for tokens that are **not masked**,
+            - 0 for tokens that are **masked**.
+
+            [What are attention masks?](../glossary#attention-mask)
+        query_pixel_values (`torch.FloatTensor` of shape `(batch_size, num_channels, height, width)`, *optional*):
+            Pixel values. Pixel values can be obtained using
+            [`AutoImageProcessor`]. See [`CLIPImageProcessor.__call__`] for details.
+        query_image_features (`torch.FloatTensor` of shape `(batch_size, vision_encoder_hidden_size)`, *optional*):
+            Image features are required when `query_pixel_values` is not provided. In this case, vision encoder outputs are pre-extracted to speed up training and inference by skipping the vision encoder forward pass and the extract image features are directly given to the FLMR model. Image features can be obtained
+            using [`CLIPVisionModel`]. See [`CLIPVisionModel.__call__`] for details.
+        context_input_ids (`torch.LongTensor` of shape `(batch_size * (1 + num_negative_examples), context_length)`):
+            Indices of input context tokens in the vocabulary. To match pretraining, FLMR input sequence should be
+            formatted with [CLS] and D marker tokens as follows:
+            [CLS] [unused1] paris is the capital of france. [SEP] [PAD] [PAD] [PAD] [PAD] [PAD] [PAD] [PAD] [PAD] [PAD] ...
+
+            FLMR is a model with absolute position embeddings so it's usually advised to pad the inputs on the right
+            rather than the left.
+
+            Indices can be obtained using [`AutoTokenizer`]. See [`PreTrainedTokenizer.encode`] and
+            [`PreTrainedTokenizer.__call__`] for details.
+
+            [What are input IDs?](../glossary#input-ids)
+
+            The input batch size of this tensor is `batch_size * (1 + num_negative_examples)`. Check the following argument `num_negative_examples` for details.
+
+        context_attention_mask (`torch.FloatTensor` of shape `(batch_size * (1 + num_negative_examples), context_length)`, *optional*):
+            Mask to avoid performing attention on padding token indices. Mask values selected in `[0, 1]`:
+
+            - 1 for tokens that are **not masked**,
+            - 0 for tokens that are **masked**.
+
+            [What are attention masks?](../glossary#attention-mask)
+
+            The input batch size of this tensor is `batch_size * (1 + num_negative_examples)`. Check the following argument `num_negative_examples` for details.
+        context_pixel_values (`torch.FloatTensor` of shape `(batch_size, num_channels, height, width)`, *optional*):
+            Pixel values. Pixel values can be obtained using
+            [`AutoImageProcessor`]. See [`CLIPImageProcessor.__call__`] for details.
+        context_image_features (`torch.FloatTensor` of shape `(batch_size, vision_encoder_hidden_size)`, *optional*):
+            Image features are required when `context_pixel_values` is not provided. In this case, vision encoder outputs are pre-extracted to speed up training and inference by skipping the vision encoder forward pass and the extract image features are directly given to the FLMR model. Image features can be obtained
+            using [`CLIPVisionModel`]. See [`CLIPVisionModel.__call__`] for details.
+        use_in_batch_negatives (`bool`, *optional*):
+            Whether or not to use in-batch negatives. If `True`, the contrastive loss includes in-batch negatives. For each positive example, all other examples in the batch except itself are considered negative examples in computing the contrastive loss. This improves ultimate performance in practice. This input is to be used in model training.
+        in_batch_negatives_from_all_gpus (`bool`, *optional*):
+            Whether or not to use in-batch negatives from all GPUs. If `True`, the contrastive loss includes in-batch negatives from all GPUs. This input is to be used in model training.
+        num_negative_examples (`int`, *optional*):
+            The number of negative examples in the batch. For example, if `num_negative_examples` is 4, the batch size of `context_input_ids` and `context_attention_mask` is `batch_size * 5`.
+        query_concat_output_from_vision_encoder (`bool`, *optional*):
+            Whether or not to concatenate the output from the vision encoder to the final query late-interaction representations. If `True`, the output from the vision encoder is concatenated to the query representations. When using a pretrained model, this will be read from the model configuration. It should be set to `True` for FLMR and PreFLMR -style models.
+        query_concat_output_from_text_encoder (`bool`, *optional*):
+            Whether or not to concatenate the output from the text encoder to the final query late-interaction representations. If `True`, the output from the text encoder is concatenated to the query representations. When using a pretrained model, this will be read from the model configuration. It should be set to `True` for FLMR and PreFLMR -style models.
+
+            This argument can be set to `False` when performing mapping network pretraining as in FLMR and PreFLMR, in which case the output from the text encoder is not concatenated to the final query representations.
+        context_concat_output_from_vision_encoder (`bool`, *optional*):
+            Whether or not to concatenate the output from the vision encoder to the final context late-interaction representations. If `True`, the output from the vision encoder is concatenated to the context representations. When using a pretrained model, this will be read from the model configuration. It should be set to `False` for FLMR and PreFLMR -style models since the context vision encoder is not used.
+
+            This can be set to `True` to additionally encode the context images with the vision encoder when context images are provided.
+        context_concat_output_from_text_encoder (`bool`, *optional*):
+            Whether or not to concatenate the output from the text encoder to the final context late-interaction representations. If `True`, the output from the text encoder is concatenated to the context representations. When using a pretrained model, this will be read from the model configuration. It should be set to `True` for FLMR and PreFLMR -style models.
+"""
+
+
+
+FLMR_MODEL_QUERY_INPUTS_DOCSTRING = r"""
+    Args:
+        input_ids (`torch.LongTensor` of shape `(batch_size, query_length)`):
+            Indices of input query tokens in the vocabulary. To match pretraining, FLMR input sequence should be
+            formatted with [CLS] and Q marker tokens as follows:
+            [CLS] [unused0] using the provided image, obtain documents that address the subsequent question : what is the capital of france? [SEP] [MASK] [MASK] [MASK] [MASK] [MASK] [MASK] [MASK] [MASK] [MASK] ...
+
+            FLMR is a model with absolute position embeddings so it's usually advised to pad the inputs on the right
+            rather than the left.
+
+            Indices can be obtained using [`AutoTokenizer`]. See [`PreTrainedTokenizer.encode`] and
+            [`PreTrainedTokenizer.__call__`] for details.
+
+            [What are input IDs?](../glossary#input-ids)
+        attention_mask (`torch.FloatTensor` of shape `(batch_size, query_length)`, *optional*):
+            Mask to avoid performing attention on padding token indices. Mask values selected in `[0, 1]`:
+
+            - 1 for tokens that are **not masked**,
+            - 0 for tokens that are **masked**.
+
+            [What are attention masks?](../glossary#attention-mask)
+        pixel_values (`torch.FloatTensor` of shape `(batch_size, num_channels, height, width)`, *optional*):
+            Pixel values. Pixel values can be obtained using
+            [`AutoImageProcessor`]. See [`CLIPImageProcessor.__call__`] for details.
+        image_features (`torch.FloatTensor` of shape `(batch_size, vision_encoder_hidden_size)`, *optional*):
+            Image features are required when `pixel_values` is not provided. In this case, vision encoder outputs are pre-extracted to speed up training and inference by skipping the vision encoder forward pass and the extract image features are directly given to the FLMR model. Image features can be obtained
+            using [`CLIPVisionModel`]. See [`CLIPVisionModel.__call__`] for details.
+        concat_output_from_vision_encoder (`bool`, *optional*):
+            Whether or not to concatenate the output from the vision encoder to the final query late-interaction representations. If `True`, the output from the vision encoder is concatenated to the query representations. When using a pretrained model, this will be read from the model configuration. It should be set to `True` for FLMR and PreFLMR -style models.
+        concat_output_from_text_encoder (`bool`, *optional*):
+            Whether or not to concatenate the output from the text encoder to the final query late-interaction representations. If `True`, the output from the text encoder is concatenated to the query representations. When using a pretrained model, this will be read from the model configuration. It should be set to `True` for FLMR and PreFLMR -style models.
+
+            This argument can be set to `False` when performing mapping network pretraining as in FLMR and PreFLMR, in which case the output from the text encoder is not concatenated to the final query representations.
+"""
+
+
+FLMR_MODEL_CONTEXT_INPUTS_DOCSTRING = r"""
+    Args:
+        input_ids (`torch.LongTensor` of shape `(batch_size * (1 + num_negative_examples), context_length)`):
+            Indices of input context tokens in the vocabulary. To match pretraining, FLMR input sequence should be
+            formatted with [CLS] and D marker tokens as follows:
+            [CLS] [unused1] paris is the capital of france. [SEP] [PAD] [PAD] [PAD] [PAD] [PAD] [PAD] [PAD] [PAD] [PAD] ...
+
+            FLMR is a model with absolute position embeddings so it's usually advised to pad the inputs on the right
+            rather than the left.
+
+            Indices can be obtained using [`AutoTokenizer`]. See [`PreTrainedTokenizer.encode`] and
+            [`PreTrainedTokenizer.__call__`] for details.
+
+            [What are input IDs?](../glossary#input-ids)
+
+            The input batch size of this tensor is `batch_size * (1 + num_negative_examples)`. Check the following argument `num_negative_examples` for details.
+        attention_mask (`torch.FloatTensor` of shape `(batch_size * (1 + num_negative_examples), context_length)`, *optional*):
+            Mask to avoid performing attention on padding token indices. Mask values selected in `[0, 1]`:
+
+            - 1 for tokens that are **not masked**,
+            - 0 for tokens that are **masked**.
+
+            [What are attention masks?](../glossary#attention-mask)
+
+            The input batch size of this tensor is `batch_size * (1 + num_negative_examples)`. Check the following argument `num_negative_examples` for details.
+        pixel_values (`torch.FloatTensor` of shape `(batch_size, num_channels, height, width)`, *optional*):
+            Pixel values. Pixel values can be obtained using
+            [`AutoImageProcessor`]. See [`CLIPImageProcessor.__call__`] for details.
+        image_features (`torch.FloatTensor` of shape `(batch_size, vision_encoder_hidden_size)`, *optional*):
+            Image features are required when `pixel_values` is not provided. In this case, vision encoder outputs are pre-extracted to speed up training and inference by skipping the vision encoder forward pass and the extract image features are directly given to the FLMR model. Image features can be obtained
+            using [`CLIPVisionModel`]. See [`CLIPVisionModel
+            .__call__`] for details.
+        concat_output_from_vision_encoder (`bool`, *optional*):
+            Whether or not to concatenate the output from the vision encoder to the final context late-interaction representations. If `True`, the output from the vision encoder is concatenated to the context representations. When using a pretrained model, this will be read from the model configuration. It should be set to `False` for FLMR and PreFLMR -style models since the context vision encoder is not used.
+
+            This can be set to `True` to additionally encode the context images with the vision encoder when context images are provided.
+        concat_output_from_text_encoder (`bool`, *optional*):
+            Whether or not to concatenate the output from the text encoder to the final context late-interaction representations. If `True`, the output from the text encoder is concatenated to the context representations. When using a pretrained model, this will be read from the model configuration. It should be set to `True` for FLMR and PreFLMR -style models.
+        keep_dims (`bool`, *optional*):
+            Whether or not to keep the dimensions of the output. If `True`, the output is returned with the same dimensions as the input. If `False`, the output is returned with the batch size of the input and the context length. This input is to be used in model training.
+        return_mask (`bool`, *optional*):
+            Whether or not to return the mask of the context representation. If `True`, the mask of the context representation is returned. This input is to be used in model training.
+"""
+
+
+# Copied from transformers.models.dpr.modeling_dpr with DPR -> FLMR
+FLMR_TEXT_ENCODERS_INPUTS_DOCSTRING = r"""
     Args:
         input_ids (`torch.LongTensor` of shape `(batch_size, sequence_length)`):
             Indices of input sequence tokens in the vocabulary. To match pretraining, FLMR input sequence should be
@@ -323,6 +413,21 @@ FLMR_ENCODERS_INPUTS_DOCSTRING = r"""
             Whether or not to return a [`~utils.ModelOutput`] instead of a plain tuple.
 """
 
+# Copied from transformers.models.clip.modeling_clip with CLIP -> FLMR
+FLMR_VISION_ENCODERS_INPUTS_DOCSTRING = r"""
+    Args:
+        pixel_values (`torch.FloatTensor` of shape `(batch_size, num_channels, height, width)`):
+            Pixel values. Padding will be ignored by default should you provide it. Pixel values can be obtained using
+            [`AutoImageProcessor`]. See [`CLIPImageProcessor.__call__`] for details.
+        output_attentions (`bool`, *optional*):
+            Whether or not to return the attentions tensors of all attention layers. See `attentions` under returned
+            tensors for more detail.
+        output_hidden_states (`bool`, *optional*):
+            Whether or not to return the hidden states of all layers. See `hidden_states` under returned tensors for
+            more detail.
+        return_dict (`bool`, *optional*):
+            Whether or not to return a [`~utils.ModelOutput`] instead of a plain tuple.
+"""
 
 
 class MLP(nn.Module):
@@ -493,6 +598,8 @@ class FLMRModelForRetrieval(FLMRPretrainedModelForRetrieval):
         ]
         return mask
     
+    @add_start_docstrings_to_model_forward(FLMR_MODEL_INPUTS_DOCSTRING)
+    @replace_return_docstrings(output_type=FLMRModelForRetrievalOutput, config_class=_CONFIG_FOR_DOC)
     def forward(
             self, 
             query_input_ids: Optional[torch.Tensor]=None,
@@ -511,6 +618,45 @@ class FLMRModelForRetrieval(FLMRPretrainedModelForRetrieval):
             context_concat_output_from_vision_encoder: Optional[bool] = None,
             context_concat_output_from_text_encoder: Optional[bool] = None,
         ) -> Union[FLMRModelForRetrievalOutput, Tuple[Tensor, ...]]:
+        r"""
+        Return:
+
+        Examples:
+
+        ```python
+        >>> from transformers import FLMRQueryEncoderTokenizer, FLMRContextEncoderTokenizer, FLMRModelForRetrieval, AutoImageProcessor
+
+        >>> checkpoint_path = "LinWeizheDragon/PreFLMR_ViT-G"
+        >>> image_processor_name = "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
+        >>> query_tokenizer = FLMRQueryEncoderTokenizer.from_pretrained(checkpoint_path, subfolder="query_tokenizer")
+        >>> context_tokenizer = FLMRContextEncoderTokenizer.from_pretrained(checkpoint_path, subfolder="context_tokenizer")
+
+        >>> model = FLMRModelForRetrieval.from_pretrained(checkpoint_path, 
+                                                        query_tokenizer=query_tokenizer, 
+                                                        context_tokenizer=context_tokenizer,
+                                                        ).to("cuda")
+        >>> image_processor = AutoImageProcessor.from_pretrained(image_processor_name)
+
+        >>> Q_encoding = query_tokenizer(["Using the provided image, obtain documents that address the subsequent question: What is the capital of France?", "Extract documents linked to the question provided in conjunction with the image: What is the capital of France?"])
+        >>> D_encoding = context_tokenizer(["Paris is the capital of France.", "Beijing is the capital of China.",
+                                    "Paris is the capital of France.", "Beijing is the capital of China."])
+        >>> Q_pixel_values = torch.randn(2, 3, 224, 224)
+        >>> inputs = dict(
+                query_input_ids=Q_encoding['input_ids'],
+                query_attention_mask=Q_encoding['attention_mask'],
+                query_pixel_values=Q_pixel_values,
+                context_input_ids=D_encoding['input_ids'],
+                context_attention_mask=D_encoding['attention_mask'],
+                use_in_batch_negatives=True,
+            )
+        
+        >>> flmr_model.forward(**inputs)
+        FLMRModelForRetrievalOutput(loss=tensor(0.0002, device='cuda:0', dtype=torch.float16,
+       grad_fn=<NllLossBackward0>), scores=tensor([[38.9375, 30.0312],
+        [36.9688, 28.7031]], device='cuda:0', dtype=torch.float16,
+       grad_fn=<ViewBackward0>), in_batch_negative_loss=tensor(0.6933, device='cuda:0', grad_fn=<NllLossBackward0>))
+        ```
+        """
 
         if query_concat_output_from_vision_encoder is None:
             query_concat_output_from_vision_encoder = self.config.query_concat_output_from_vision_encoder
@@ -555,13 +701,30 @@ class FLMRModelForRetrieval(FLMRPretrainedModelForRetrieval):
 
         scores = self.score(Q_duplicated, D, D_mask)
 
+        # Use contrastive learning
+        batch_size = query_input_ids.shape[0]
+        scores = scores.view(-1, num_negative_examples + 1)
+        labels = torch.zeros(batch_size, dtype=torch.long, device=self.device)
+        loss = self.loss_fn(scores, labels)
+
         if use_in_batch_negatives:
             ib_loss = self.compute_ib_loss_new(Q, D, D_mask)
-            return scores, ib_loss
+        else:
+            ib_loss = None
+        
+        return FLMRModelForRetrievalOutput(
+            loss=loss,
+            scores=scores,
+            in_batch_negative_loss=ib_loss,
+        )
 
-        return scores
     
-    def compute_ib_loss_new(self, Q, D, D_mask):
+    def compute_ib_loss_new(
+            self, 
+            Q: torch.Tensor, 
+            D: torch.Tensor, 
+            D_mask: torch.Tensor
+        ) -> torch.Tensor:
         # Q: batch_size x q_len x dim
         # D: batch_size*n_docs x i_len x dim
         # D_mask: batch_size*n_docs x i_len x dim
@@ -643,7 +806,8 @@ class FLMRModelForRetrieval(FLMRPretrainedModelForRetrieval):
 
         return query_embeddings, item_embeddings, item_mask
 
-    
+    @add_start_docstrings_to_model_forward(FLMR_MODEL_QUERY_INPUTS_DOCSTRING)
+    @replace_return_docstrings(output_type=FLMRQueryEncoderOutput, config_class=_CONFIG_FOR_DOC)
     def query(
             self, 
             input_ids: torch.Tensor,
@@ -739,6 +903,8 @@ class FLMRModelForRetrieval(FLMRPretrainedModelForRetrieval):
             late_interaction_output=torch.nn.functional.normalize(Q, p=2, dim=2),
         )
 
+    @add_start_docstrings_to_model_forward(FLMR_MODEL_CONTEXT_INPUTS_DOCSTRING)
+    @replace_return_docstrings(output_type=FLMRContextEncoderOutput, config_class=_CONFIG_FOR_DOC)
     def doc(
             self, 
             input_ids: torch.Tensor,
@@ -751,7 +917,7 @@ class FLMRModelForRetrieval(FLMRPretrainedModelForRetrieval):
             return_mask: Optional[bool] = True,
         ):
 
-        assert keep_dims in [True, False, 'return_mask']
+        assert keep_dims in [True, False]
 
         if concat_output_from_vision_encoder is None:
             concat_output_from_vision_encoder = self.config.context_concat_output_from_vision_encoder
@@ -839,71 +1005,76 @@ class FLMRModelForRetrieval(FLMRPretrainedModelForRetrieval):
         return mask
     
 
-    # @add_start_docstrings_to_model_forward(FLMR_ENCODERS_INPUTS_DOCSTRING)
-    # @replace_return_docstrings(output_type=FLMRQueryEncoderOutput, config_class=_CONFIG_FOR_DOC)
-    # def forward(
-    #     self,
-    #     input_ids: Optional[Tensor] = None,
-    #     attention_mask: Optional[Tensor] = None,
-    #     token_type_ids: Optional[Tensor] = None,
-    #     inputs_embeds: Optional[Tensor] = None,
-    #     output_attentions: Optional[bool] = None,
-    #     output_hidden_states: Optional[bool] = None,
-    #     return_dict: Optional[bool] = None,
-    # ) -> Union[FLMRQueryEncoderOutput, Tuple[Tensor, ...]]:
-    #     r"""
-    #     Return:
+@add_start_docstrings(
+    "The bare FLMR text encoder that can be used to generate late-interaction embeddings for texts in queries and contexts. ",
+    FLMR_TEXT_ENCODERS_INPUTS_DOCSTRING,
+)
+class FLMRTextModel(FLMRPreTrainedModel):
+    base_model_prefix = "flmr_text_model"
 
-    #     Examples:
+    def __init__(self, config: FLMRTextConfig):
+        super().__init__(config)
+        self.bert_model = BertModel(config, add_pooling_layer=True)
+        if self.bert_model.config.hidden_size <= 0:
+            raise ValueError("Encoder hidden_size can't be zero")
+        self.projection_dim = config.projection_dim
+        if self.projection_dim > 0:
+            self.encode_proj = nn.Linear(self.bert_model.config.hidden_size, config.projection_dim)
+        # Initialize weights and apply final processing
+        self.post_init()
 
-    #     ```python
-    #     >>> from transformers import FLMRQueryEncoder, FLMRTokenizer
+    def forward(
+        self,
+        input_ids: Tensor,
+        attention_mask: Optional[Tensor] = None,
+        token_type_ids: Optional[Tensor] = None,
+        inputs_embeds: Optional[Tensor] = None,
+        output_attentions: bool = False,
+        output_hidden_states: bool = False,
+        return_dict: bool = False,
+    ) -> Union[BaseModelOutputWithPooling, Tuple[Tensor, ...]]:
+        outputs = self.bert_model(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+            inputs_embeds=inputs_embeds,
+            output_attentions=output_attentions,
+            output_hidden_states=output_hidden_states,
+            return_dict=return_dict,
+        )
+        sequence_output = outputs[0]
+        pooled_output = sequence_output[:, 0, :]
 
-    #     >>> tokenizer = FLMRTokenizer.from_pretrained("facebook/flmr-question_encoder-single-nq-base")
-    #     >>> model = FLMRQueryEncoder.from_pretrained("facebook/flmr-question_encoder-single-nq-base")
-    #     >>> input_ids = tokenizer("Hello, is my dog cute ?", return_tensors="pt")["input_ids"]
-    #     >>> embeddings = model(input_ids).pooler_output
-    #     ```
-    #     """
-    #     output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
-    #     output_hidden_states = (
-    #         output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
-    #     )
-    #     return_dict = return_dict if return_dict is not None else self.config.use_return_dict
+        if self.projection_dim > 0:
+            pooled_output = self.encode_proj(pooled_output)
 
-    #     if input_ids is not None and inputs_embeds is not None:
-    #         raise ValueError("You cannot specify both input_ids and inputs_embeds at the same time")
-    #     elif input_ids is not None:
-    #         self.warn_if_padding_and_no_attention_mask(input_ids, attention_mask)
-    #         input_shape = input_ids.size()
-    #     elif inputs_embeds is not None:
-    #         input_shape = inputs_embeds.size()[:-1]
-    #     else:
-    #         raise ValueError("You have to specify either input_ids or inputs_embeds")
+        if not return_dict:
+            return (sequence_output, pooled_output) + outputs[2:]
 
-    #     device = input_ids.device if input_ids is not None else inputs_embeds.device
+        return BaseModelOutputWithPooling(
+            last_hidden_state=sequence_output,
+            pooler_output=pooled_output,
+            hidden_states=outputs.hidden_states,
+            attentions=outputs.attentions,
+        )
 
-    #     if attention_mask is None:
-    #         attention_mask = (
-    #             torch.ones(input_shape, device=device)
-    #             if input_ids is None
-    #             else (input_ids != self.config.pad_token_id)
-    #         )
-    #     if token_type_ids is None:
-    #         token_type_ids = torch.zeros(input_shape, dtype=torch.long, device=device)
+    @property
+    def embeddings_size(self) -> int:
+        if self.projection_dim > 0:
+            return self.encode_proj.out_features
+        return self.bert_model.config.hidden_size
 
-    #     outputs = self.text_encoder(
-    #         input_ids=input_ids,
-    #         attention_mask=attention_mask,
-    #         token_type_ids=token_type_ids,
-    #         inputs_embeds=inputs_embeds,
-    #         output_attentions=output_attentions,
-    #         output_hidden_states=output_hidden_states,
-    #         return_dict=return_dict,
-    #     )
 
-    #     if not return_dict:
-    #         return outputs[1:]
-    #     return FLMRQueryEncoderOutput(
-    #         pooler_output=outputs.pooler_output, hidden_states=outputs.hidden_states, attentions=outputs.attentions
-    #     )
+@add_start_docstrings(
+    "The bare FLMR vision encoder that can be used to generate late-interaction embeddings for images in queries and contexts. ",
+    FLMR_VISION_ENCODERS_INPUTS_DOCSTRING,
+)
+class FLMRVisionModel(FLMRPreTrainedModel):
+    base_model_prefix = "flmr_vision_model"
+
+    def __init__(self, config: FLMRVisionConfig):
+        super().__init__(config)
+        self.vision_model = CLIPVisionModel(config)
+
+    def forward(self, *args, **kwargs):
+        return self.vision_model(*args, **kwargs)

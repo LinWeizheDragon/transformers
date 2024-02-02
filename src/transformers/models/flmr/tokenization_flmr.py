@@ -23,96 +23,70 @@ from ...utils import TensorType, add_end_docstrings, add_start_docstrings, loggi
 from ..bert.tokenization_bert import BertTokenizer
 
 import torch
-from colbert.modeling.tokenization.utils import _split_into_batches, _sort_by_length
+from .flmr_utils import _split_into_batches, _sort_by_length
 
 logger = logging.get_logger(__name__)
 
-VOCAB_FILES_NAMES = {"vocab_file": "vocab.txt", "tokenizer_file": "tokenizer.json"}
+VOCAB_FILES_NAMES = {"vocab_file": "vocab.txt", "tokenizer_file": "tokenizer_config.json"}
 
 CONTEXT_ENCODER_PRETRAINED_VOCAB_FILES_MAP = {
     "vocab_file": {
-        "weizhelin/flmr": (
-            "https://huggingface.co/weizhelin/flmr/resolve/main/vocab.txt"
+        "BByrneLab/PreFLMR_ViT-G": (
+            "https://huggingface.co/BByrneLab/PreFLMR_ViT-G/resolve/main/context_tokenizer/vocab.txt"
         ),
-        "facebook/flmr-ctx_encoder-multiset-base": (
-            "https://huggingface.co/facebook/flmr-ctx_encoder-multiset-base/resolve/main/vocab.txt"
+        "BByrneLab/FLMR": (
+            "https://huggingface.co/BByrneLab/FLMR/resolve/main/context_tokenizer/vocab.txt"
         ),
     },
     "tokenizer_file": {
-        "weizhelin/flmr": (
-            "https://huggingface.co/weizhelin/flmr/resolve/main/tokenizer.json"
+        "BByrneLab/PreFLMR_ViT-G": (
+            "https://huggingface.co/BByrneLab/PreFLMR_ViT-G/resolve/main/context_tokenizer/tokenizer_config.json"
         ),
-        "facebook/flmr-ctx_encoder-multiset-base": (
-            "https://huggingface.co/facebook/flmr-ctx_encoder-multiset-base/resolve/main/tokenizer.json"
+        "BByrneLab/FLMR": (
+            "https://huggingface.co/BByrneLab/FLMR/resolve/main/context_tokenizer/tokenizer_config.json"
         ),
     },
 }
 QUESTION_ENCODER_PRETRAINED_VOCAB_FILES_MAP = {
     "vocab_file": {
-        "facebook/flmr-question_encoder-single-nq-base": (
-            "https://huggingface.co/facebook/flmr-question_encoder-single-nq-base/resolve/main/vocab.txt"
+        "BByrneLab/PreFLMR_ViT-G": (
+            "https://huggingface.co/BByrneLab/PreFLMR_ViT-G/resolve/main/query_tokenizer/vocab.txt"
         ),
-        "facebook/flmr-question_encoder-multiset-base": (
-            "https://huggingface.co/facebook/flmr-question_encoder-multiset-base/resolve/main/vocab.txt"
-        ),
-    },
-    "tokenizer_file": {
-        "facebook/flmr-question_encoder-single-nq-base": (
-            "https://huggingface.co/facebook/flmr-question_encoder-single-nq-base/resolve/main/tokenizer.json"
-        ),
-        "facebook/flmr-question_encoder-multiset-base": (
-            "https://huggingface.co/facebook/flmr-question_encoder-multiset-base/resolve/main/tokenizer.json"
-        ),
-    },
-}
-READER_PRETRAINED_VOCAB_FILES_MAP = {
-    "vocab_file": {
-        "facebook/flmr-reader-single-nq-base": (
-            "https://huggingface.co/facebook/flmr-reader-single-nq-base/resolve/main/vocab.txt"
-        ),
-        "facebook/flmr-reader-multiset-base": (
-            "https://huggingface.co/facebook/flmr-reader-multiset-base/resolve/main/vocab.txt"
+        "BByrneLab/FLMR": (
+            "https://huggingface.co/BByrneLab/FLMR/resolve/main/query_tokenizer/vocab.txt"
         ),
     },
     "tokenizer_file": {
-        "facebook/flmr-reader-single-nq-base": (
-            "https://huggingface.co/facebook/flmr-reader-single-nq-base/resolve/main/tokenizer.json"
+        "BByrneLab/PreFLMR_ViT-G": (
+            "https://huggingface.co/BByrneLab/PreFLMR_ViT-G/resolve/main/query_tokenizer/tokenizer_config.json"
         ),
-        "facebook/flmr-reader-multiset-base": (
-            "https://huggingface.co/facebook/flmr-reader-multiset-base/resolve/main/tokenizer.json"
+        "BByrneLab/FLMR": (
+            "https://huggingface.co/BByrneLab/FLMR/resolve/main/query_tokenizer/tokenizer_config.json"
         ),
     },
 }
 
+
 CONTEXT_ENCODER_PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES = {
-    "weizhelin/flmr": 512,
-    "facebook/flmr-ctx_encoder-multiset-base": 512,
+    "BByrneLab/PreFLMR_ViT-G": 512,
+    "BByrneLab/FLMR": 512,
 }
 QUESTION_ENCODER_PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES = {
-    "weizhelin/flmr": 512,
-    "facebook/flmr-question_encoder-single-nq-base": 512,
-    "facebook/flmr-question_encoder-multiset-base": 512,
-}
-READER_PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES = {
-    "facebook/flmr-reader-single-nq-base": 512,
-    "facebook/flmr-reader-multiset-base": 512,
+    "BByrneLab/PreFLMR_ViT-G": 512,
+    "BByrneLab/FLMR": 512,
 }
 
 
 CONTEXT_ENCODER_PRETRAINED_INIT_CONFIGURATION = {
-    "weizhelin/flmr": {"do_lower_case": True},
-    "facebook/flmr-ctx_encoder-multiset-base": {"do_lower_case": True},
+    "BByrneLab/PreFLMR_ViT-G": {"do_lower_case": True},
+    "BByrneLab/FLMR": {"do_lower_case": True},
 }
 QUESTION_ENCODER_PRETRAINED_INIT_CONFIGURATION = {
-    "facebook/flmr-question_encoder-single-nq-base": {"do_lower_case": True},
-    "facebook/flmr-question_encoder-multiset-base": {"do_lower_case": True},
-}
-READER_PRETRAINED_INIT_CONFIGURATION = {
-    "facebook/flmr-reader-single-nq-base": {"do_lower_case": True},
-    "facebook/flmr-reader-multiset-base": {"do_lower_case": True},
+    "BByrneLab/PreFLMR_ViT-G": {"do_lower_case": True},
+    "BByrneLab/FLMR": {"do_lower_case": True},
 }
 
-
+# Copied and modified from colbert.modeling.tokenization
 class FLMRContextEncoderTokenizer(BertTokenizer):
     r"""
     Construct a FLMRContextEncoder tokenizer.
@@ -191,6 +165,7 @@ class FLMRContextEncoderTokenizer(BertTokenizer):
         return encoding
 
 
+# Copied and modified from colbert.modeling.tokenization
 class FLMRQueryEncoderTokenizer(BertTokenizer):
     r"""
     Constructs a FLMRQueryEncoder tokenizer.
@@ -276,6 +251,7 @@ class FLMRQueryEncoderTokenizer(BertTokenizer):
             mask = torch.cat((mask, mask_2), dim=-1)
         
         if self.attend_to_mask_tokens:
+            # When attend_to_mask_tokens is True, we want to attend to the [MASK] tokens
             mask[ids == self.mask_token_id] = 1
             assert mask.sum().item() == mask.size(0) * mask.size(1), mask
 
@@ -288,269 +264,3 @@ class FLMRQueryEncoderTokenizer(BertTokenizer):
 
         return encoding
 
-FLMRSpanPrediction = collections.namedtuple(
-    "FLMRSpanPrediction", ["span_score", "relevance_score", "doc_id", "start_index", "end_index", "text"]
-)
-
-FLMRReaderOutput = collections.namedtuple("FLMRReaderOutput", ["start_logits", "end_logits", "relevance_logits"])
-
-
-CUSTOM_FLMR_READER_DOCSTRING = r"""
-    Return a dictionary with the token ids of the input strings and other information to give to `.decode_best_spans`.
-    It converts the strings of a question and different passages (title and text) in a sequence of IDs (integers),
-    using the tokenizer and vocabulary. The resulting `input_ids` is a matrix of size `(n_passages, sequence_length)`
-    with the format:
-
-    ```
-    [CLS] <question token ids> [SEP] <titles ids> [SEP] <texts ids>
-    ```
-
-    Args:
-        questions (`str` or `List[str]`):
-            The questions to be encoded. You can specify one question for many passages. In this case, the question
-            will be duplicated like `[questions] * n_passages`. Otherwise you have to specify as many questions as in
-            `titles` or `texts`.
-        titles (`str` or `List[str]`):
-            The passages titles to be encoded. This can be a string or a list of strings if there are several passages.
-        texts (`str` or `List[str]`):
-            The passages texts to be encoded. This can be a string or a list of strings if there are several passages.
-        padding (`bool`, `str` or [`~utils.PaddingStrategy`], *optional*, defaults to `False`):
-            Activates and controls padding. Accepts the following values:
-
-            - `True` or `'longest'`: Pad to the longest sequence in the batch (or no padding if only a single sequence
-              if provided).
-            - `'max_length'`: Pad to a maximum length specified with the argument `max_length` or to the maximum
-              acceptable input length for the model if that argument is not provided.
-            - `False` or `'do_not_pad'` (default): No padding (i.e., can output a batch with sequences of different
-              lengths).
-        truncation (`bool`, `str` or [`~tokenization_utils_base.TruncationStrategy`], *optional*, defaults to `False`):
-            Activates and controls truncation. Accepts the following values:
-
-            - `True` or `'longest_first'`: Truncate to a maximum length specified with the argument `max_length` or to
-              the maximum acceptable input length for the model if that argument is not provided. This will truncate
-              token by token, removing a token from the longest sequence in the pair if a pair of sequences (or a batch
-              of pairs) is provided.
-            - `'only_first'`: Truncate to a maximum length specified with the argument `max_length` or to the maximum
-              acceptable input length for the model if that argument is not provided. This will only truncate the first
-              sequence of a pair if a pair of sequences (or a batch of pairs) is provided.
-            - `'only_second'`: Truncate to a maximum length specified with the argument `max_length` or to the maximum
-              acceptable input length for the model if that argument is not provided. This will only truncate the
-              second sequence of a pair if a pair of sequences (or a batch of pairs) is provided.
-            - `False` or `'do_not_truncate'` (default): No truncation (i.e., can output batch with sequence lengths
-              greater than the model maximum admissible input size).
-        max_length (`int`, *optional*):
-                Controls the maximum length to use by one of the truncation/padding parameters.
-
-                If left unset or set to `None`, this will use the predefined model maximum length if a maximum length
-                is required by one of the truncation/padding parameters. If the model has no specific maximum input
-                length (like XLNet) truncation/padding to a maximum length will be deactivated.
-        return_tensors (`str` or [`~utils.TensorType`], *optional*):
-                If set, will return tensors instead of list of python integers. Acceptable values are:
-
-                - `'tf'`: Return TensorFlow `tf.constant` objects.
-                - `'pt'`: Return PyTorch `torch.Tensor` objects.
-                - `'np'`: Return Numpy `np.ndarray` objects.
-        return_attention_mask (`bool`, *optional*):
-            Whether or not to return the attention mask. If not set, will return the attention mask according to the
-            specific tokenizer's default, defined by the `return_outputs` attribute.
-
-            [What are attention masks?](../glossary#attention-mask)
-
-    Returns:
-        `Dict[str, List[List[int]]]`: A dictionary with the following keys:
-
-        - `input_ids`: List of token ids to be fed to a model.
-        - `attention_mask`: List of indices specifying which tokens should be attended to by the model.
-    """
-
-
-@add_start_docstrings(CUSTOM_FLMR_READER_DOCSTRING)
-class CustomFLMRReaderTokenizerMixin:
-    def __call__(
-        self,
-        questions,
-        titles: Optional[str] = None,
-        texts: Optional[str] = None,
-        padding: Union[bool, str] = False,
-        truncation: Union[bool, str] = False,
-        max_length: Optional[int] = None,
-        return_tensors: Optional[Union[str, TensorType]] = None,
-        return_attention_mask: Optional[bool] = None,
-        **kwargs,
-    ) -> BatchEncoding:
-        if titles is None and texts is None:
-            return super().__call__(
-                questions,
-                padding=padding,
-                truncation=truncation,
-                max_length=max_length,
-                return_tensors=return_tensors,
-                return_attention_mask=return_attention_mask,
-                **kwargs,
-            )
-        elif titles is None or texts is None:
-            text_pair = titles if texts is None else texts
-            return super().__call__(
-                questions,
-                text_pair,
-                padding=padding,
-                truncation=truncation,
-                max_length=max_length,
-                return_tensors=return_tensors,
-                return_attention_mask=return_attention_mask,
-                **kwargs,
-            )
-        titles = titles if not isinstance(titles, str) else [titles]
-        texts = texts if not isinstance(texts, str) else [texts]
-        n_passages = len(titles)
-        questions = questions if not isinstance(questions, str) else [questions] * n_passages
-        if len(titles) != len(texts):
-            raise ValueError(
-                f"There should be as many titles than texts but got {len(titles)} titles and {len(texts)} texts."
-            )
-        encoded_question_and_titles = super().__call__(questions, titles, padding=False, truncation=False)["input_ids"]
-        encoded_texts = super().__call__(texts, add_special_tokens=False, padding=False, truncation=False)["input_ids"]
-        encoded_inputs = {
-            "input_ids": [
-                (encoded_question_and_title + encoded_text)[:max_length]
-                if max_length is not None and truncation
-                else encoded_question_and_title + encoded_text
-                for encoded_question_and_title, encoded_text in zip(encoded_question_and_titles, encoded_texts)
-            ]
-        }
-        if return_attention_mask is not False:
-            attention_mask = []
-            for input_ids in encoded_inputs["input_ids"]:
-                attention_mask.append([int(input_id != self.pad_token_id) for input_id in input_ids])
-            encoded_inputs["attention_mask"] = attention_mask
-        return self.pad(encoded_inputs, padding=padding, max_length=max_length, return_tensors=return_tensors)
-
-    def decode_best_spans(
-        self,
-        reader_input: BatchEncoding,
-        reader_output: FLMRReaderOutput,
-        num_spans: int = 16,
-        max_answer_length: int = 64,
-        num_spans_per_passage: int = 4,
-    ) -> List[FLMRSpanPrediction]:
-        """
-        Get the span predictions for the extractive Q&A model.
-
-        Returns: *List* of *FLMRReaderOutput* sorted by descending *(relevance_score, span_score)*. Each
-        *FLMRReaderOutput* is a *Tuple* with:
-
-            - **span_score**: `float` that corresponds to the score given by the reader for this span compared to other
-              spans in the same passage. It corresponds to the sum of the start and end logits of the span.
-            - **relevance_score**: `float` that corresponds to the score of the each passage to answer the question,
-              compared to all the other passages. It corresponds to the output of the QA classifier of the FLMRReader.
-            - **doc_id**: `int` the id of the passage. - **start_index**: `int` the start index of the span
-              (inclusive). - **end_index**: `int` the end index of the span (inclusive).
-
-        Examples:
-
-        ```python
-        >>> from transformers import FLMRReader, FLMRReaderTokenizer
-
-        >>> tokenizer = FLMRReaderTokenizer.from_pretrained("facebook/flmr-reader-single-nq-base")
-        >>> model = FLMRReader.from_pretrained("facebook/flmr-reader-single-nq-base")
-        >>> encoded_inputs = tokenizer(
-        ...     questions=["What is love ?"],
-        ...     titles=["Haddaway"],
-        ...     texts=["'What Is Love' is a song recorded by the artist Haddaway"],
-        ...     return_tensors="pt",
-        ... )
-        >>> outputs = model(**encoded_inputs)
-        >>> predicted_spans = tokenizer.decode_best_spans(encoded_inputs, outputs)
-        >>> print(predicted_spans[0].text)  # best span
-        a song
-        ```"""
-        input_ids = reader_input["input_ids"]
-        start_logits, end_logits, relevance_logits = reader_output[:3]
-        n_passages = len(relevance_logits)
-        sorted_docs = sorted(range(n_passages), reverse=True, key=relevance_logits.__getitem__)
-        nbest_spans_predictions: List[FLMRReaderOutput] = []
-        for doc_id in sorted_docs:
-            sequence_ids = list(input_ids[doc_id])
-            # assuming question & title information is at the beginning of the sequence
-            passage_offset = sequence_ids.index(self.sep_token_id, 2) + 1  # second sep id
-            if sequence_ids[-1] == self.pad_token_id:
-                sequence_len = sequence_ids.index(self.pad_token_id)
-            else:
-                sequence_len = len(sequence_ids)
-
-            best_spans = self._get_best_spans(
-                start_logits=start_logits[doc_id][passage_offset:sequence_len],
-                end_logits=end_logits[doc_id][passage_offset:sequence_len],
-                max_answer_length=max_answer_length,
-                top_spans=num_spans_per_passage,
-            )
-            for start_index, end_index in best_spans:
-                start_index += passage_offset
-                end_index += passage_offset
-                nbest_spans_predictions.append(
-                    FLMRSpanPrediction(
-                        span_score=start_logits[doc_id][start_index] + end_logits[doc_id][end_index],
-                        relevance_score=relevance_logits[doc_id],
-                        doc_id=doc_id,
-                        start_index=start_index,
-                        end_index=end_index,
-                        text=self.decode(sequence_ids[start_index : end_index + 1]),
-                    )
-                )
-            if len(nbest_spans_predictions) >= num_spans:
-                break
-        return nbest_spans_predictions[:num_spans]
-
-    def _get_best_spans(
-        self,
-        start_logits: List[int],
-        end_logits: List[int],
-        max_answer_length: int,
-        top_spans: int,
-    ) -> List[FLMRSpanPrediction]:
-        """
-        Finds the best answer span for the extractive Q&A model for one passage. It returns the best span by descending
-        `span_score` order and keeping max `top_spans` spans. Spans longer that `max_answer_length` are ignored.
-        """
-        scores = []
-        for start_index, start_score in enumerate(start_logits):
-            for answer_length, end_score in enumerate(end_logits[start_index : start_index + max_answer_length]):
-                scores.append(((start_index, start_index + answer_length), start_score + end_score))
-        scores = sorted(scores, key=lambda x: x[1], reverse=True)
-        chosen_span_intervals = []
-        for (start_index, end_index), score in scores:
-            if start_index > end_index:
-                raise ValueError(f"Wrong span indices: [{start_index}:{end_index}]")
-            length = end_index - start_index + 1
-            if length > max_answer_length:
-                raise ValueError(f"Span is too long: {length} > {max_answer_length}")
-            if any(
-                start_index <= prev_start_index <= prev_end_index <= end_index
-                or prev_start_index <= start_index <= end_index <= prev_end_index
-                for (prev_start_index, prev_end_index) in chosen_span_intervals
-            ):
-                continue
-            chosen_span_intervals.append((start_index, end_index))
-
-            if len(chosen_span_intervals) == top_spans:
-                break
-        return chosen_span_intervals
-
-
-@add_end_docstrings(CUSTOM_FLMR_READER_DOCSTRING)
-class FLMRReaderTokenizer(CustomFLMRReaderTokenizerMixin, BertTokenizer):
-    r"""
-    Construct a FLMRReader tokenizer.
-
-    [`FLMRReaderTokenizer`] is almost identical to [`BertTokenizer`] and runs end-to-end tokenization: punctuation
-    splitting and wordpiece. The difference is that is has three inputs strings: question, titles and texts that are
-    combined to be fed to the [`FLMRReader`] model.
-
-    Refer to superclass [`BertTokenizer`] for usage examples and documentation concerning parameters.
-    """
-
-    vocab_files_names = VOCAB_FILES_NAMES
-    pretrained_vocab_files_map = READER_PRETRAINED_VOCAB_FILES_MAP
-    max_model_input_sizes = READER_PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES
-    pretrained_init_configuration = READER_PRETRAINED_INIT_CONFIGURATION
-    model_input_names = ["input_ids", "attention_mask"]
