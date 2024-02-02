@@ -114,8 +114,6 @@ class FLMRContextEncoderTokenizer(BertTokenizer):
 
         self.doc_maxlen = doc_maxlen
         self.D_marker_token, self.D_marker_token_id = '[D]', self.convert_tokens_to_ids('[unused1]')
-
-        assert self.D_marker_token_id == 2
     
     def __call__(
             self, 
@@ -183,12 +181,13 @@ class FLMRQueryEncoderTokenizer(BertTokenizer):
 
     def __init__(
         self,
+        *args,
         query_maxlen: Optional[int] = 32,
         attend_to_mask_tokens: Optional[bool] = False,
         **kwargs,
     ):
-        
         super().__init__(
+            *args,
             query_maxlen=query_maxlen,
             attend_to_mask_tokens=attend_to_mask_tokens,
             **kwargs,
@@ -200,14 +199,11 @@ class FLMRQueryEncoderTokenizer(BertTokenizer):
 
         self.Q_marker_token, self.Q_marker_token_id = '[Q]', self.convert_tokens_to_ids('[unused0]')
 
-        assert self.Q_marker_token_id == 1 and self.mask_token_id == 103
 
     
     def __call__(
             self, 
-            text: List[str], 
-            context: Optional[List[str]] = None,
-            bsize: Optional[bool] = None, 
+            text: Union[str, List[str]], 
             padding: Optional[Union[str, bool]] = 'max_length', 
             truncation: Optional[Union[bool, str]] = True,
             max_length: Optional[int] = None,
@@ -215,6 +211,9 @@ class FLMRQueryEncoderTokenizer(BertTokenizer):
             **kwargs
         ):
         
+        if isinstance(text, str):
+            # convert to list if input is a single string
+            text = [text]
         
         # add placehold for the [Q] marker
         text = ['. ' + x for x in text]
@@ -237,30 +236,12 @@ class FLMRQueryEncoderTokenizer(BertTokenizer):
 
         # postprocess for the [Q] marker and the [MASK] augmentation
         ids[:, 1] = self.Q_marker_token_id
-        ids[ids == 0] = self.mask_token_id
-
-        if context is not None:
-            assert len(context) == len(text), (len(context), len(text))
-
-            obj_2 = self(context, padding='longest', truncation=True,
-                            return_tensors='pt', max_length=self.background_maxlen)
-
-            ids_2, mask_2 = obj_2['input_ids'][:, 1:], obj_2['attention_mask'][:, 1:]  # Skip the first [SEP]
-
-            ids = torch.cat((ids, ids_2), dim=-1)
-            mask = torch.cat((mask, mask_2), dim=-1)
+        ids[ids == self.pad_token_id] = self.mask_token_id
         
         if self.attend_to_mask_tokens:
             # When attend_to_mask_tokens is True, we want to attend to the [MASK] tokens
             mask[ids == self.mask_token_id] = 1
             assert mask.sum().item() == mask.size(0) * mask.size(1), mask
-
-        # if bsize:
-        #     batches = _split_into_batches(ids, mask, bsize)
-        #     return batches
-
-        encoding["input_ids"] = ids
-        encoding["attention_mask"] = mask
-
-        return encoding
+        
+        return {'input_ids': ids, 'attention_mask': mask}
 
