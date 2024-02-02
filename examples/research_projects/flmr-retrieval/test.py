@@ -8,11 +8,11 @@ import torchvision.transforms as transforms
 from torchvision.utils import save_image
 from torchvision.transforms import ToPILImage
 
-from transformers import FLMRQuestionEncoderTokenizer, FLMRContextEncoderTokenizer
+from transformers import FLMRQueryEncoderTokenizer, FLMRContextEncoderTokenizer
 from transformers import FLMRModelForRetrieval
 
 if __name__ == '__main__':
-    query_tokenizer = FLMRQuestionEncoderTokenizer.from_pretrained("bert-base-uncased")
+    query_tokenizer = FLMRQueryEncoderTokenizer.from_pretrained("bert-base-uncased")
     Q_encoding = query_tokenizer(["What is the capital of France?", "This is a test sentence."])
     # print(res)
     # print(question_tokenizer.batch_decode(res["input_ids"]))
