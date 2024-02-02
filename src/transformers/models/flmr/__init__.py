@@ -27,8 +27,6 @@ _import_structure = {
     "tokenization_flmr": [
         "FLMRContextEncoderTokenizer",
         "FLMRQueryEncoderTokenizer",
-        "FLMRReaderOutput",
-        "FLMRReaderTokenizer",
     ],
 }
 
@@ -41,8 +39,7 @@ except OptionalDependencyNotAvailable:
 else:
     _import_structure["tokenization_flmr_fast"] = [
         "FLMRContextEncoderTokenizerFast",
-        "FLMRTokenizerFast",
-        "FLMRReaderTokenizerFast",
+        "FLMRQueryEncoderTokenizerFast",
     ]
 
 try:
@@ -52,18 +49,12 @@ except OptionalDependencyNotAvailable:
     pass
 else:
     _import_structure["modeling_flmr"] = [
-        "FLMR_CONTEXT_ENCODER_PRETRAINED_MODEL_ARCHIVE_LIST",
-        "FLMR_QUESTION_ENCODER_PRETRAINED_MODEL_ARCHIVE_LIST",
-        "FLMR_READER_PRETRAINED_MODEL_ARCHIVE_LIST",
-        "FLMRContextEncoder",
-        "FLMRPretrainedContextEncoder",
+        "FLMR_PRETRAINED_MODEL_ARCHIVE_LIST",
+        "FLMRVisionModel",
         "FLMRPreTrainedModel",
+        "FLMRTextModel",
         "FLMRModelForRetrieval",
-        "FLMRPretrainedModelForRetrieval"
-        "FLMRPretrainedQuestionEncoder",
-        "FLMRPretrainedReader",
-        "FLMRQuestionEncoder",
-        "FLMRReader",
+        "FLMRPretrainedModelForRetrieval",
     ]
 
 if TYPE_CHECKING:
@@ -71,8 +62,6 @@ if TYPE_CHECKING:
     from .tokenization_flmr import (
         FLMRContextEncoderTokenizer,
         FLMRQueryEncoderTokenizer,
-        FLMRReaderOutput,
-        FLMRReaderTokenizer,
     )
 
     try:
@@ -83,8 +72,7 @@ if TYPE_CHECKING:
     else:
         from .tokenization_flmr_fast import (
             FLMRContextEncoderTokenizerFast,
-            FLMRTokenizerFast,
-            FLMRReaderTokenizerFast,
+            FLMRQueryEncoderTokenizerFast,
         )
 
     try:
@@ -94,16 +82,10 @@ if TYPE_CHECKING:
         pass
     else:
         from .modeling_flmr import (
-            FLMR_CONTEXT_ENCODER_PRETRAINED_MODEL_ARCHIVE_LIST,
-            FLMR_QUESTION_ENCODER_PRETRAINED_MODEL_ARCHIVE_LIST,
-            FLMR_READER_PRETRAINED_MODEL_ARCHIVE_LIST,
-            FLMRContextEncoder,
-            FLMRPretrainedContextEncoder,
+            FLMR_PRETRAINED_MODEL_ARCHIVE_LIST,
+            FLMRVisionModel,
             FLMRPreTrainedModel,
-            FLMRPretrainedQuestionEncoder,
-            FLMRPretrainedReader,
-            FLMRQuestionEncoder,
-            FLMRReader,
+            FLMRTextModel,
             FLMRModelForRetrieval,
             FLMRPretrainedModelForRetrieval,
         )

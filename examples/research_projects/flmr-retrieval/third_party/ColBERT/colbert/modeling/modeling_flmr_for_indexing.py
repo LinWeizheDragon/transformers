@@ -147,7 +147,7 @@ class FLMRModelForIndexing(FLMRModelForRetrieval):
                 returned_text = [returned_text]
             
             
-            keep_dims_ = 'return_mask' if keep_dims == 'flatten' else keep_dims
+            keep_dims_ = True if keep_dims == 'flatten' else keep_dims
             return_mask = True if keep_dims == 'flatten' else False
 
             encoded_batches = []

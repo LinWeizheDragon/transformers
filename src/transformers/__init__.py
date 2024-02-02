@@ -1173,15 +1173,14 @@ else:
     _import_structure["models.dpr"].extend(
         [
             "DPRContextEncoderTokenizerFast",
-            "DPRQuestionEncoderTokenizerFast",
+            "DPRQueryEncoderTokenizerFast",
             "DPRReaderTokenizerFast",
         ]
     )
     _import_structure["models.flmr"].extend(
         [
             "FLMRContextEncoderTokenizerFast",
-            "FLMRTokenizerFast",
-            "FLMRReaderTokenizerFast",
+            "FLMRQueryEncoderTokenizerFast",
         ]
     )
     _import_structure["models.electra"].append("ElectraTokenizerFast")
@@ -2070,18 +2069,11 @@ else:
     )
     _import_structure["models.flmr"].extend(
         [
-            "FLMR_CONTEXT_ENCODER_PRETRAINED_MODEL_ARCHIVE_LIST",
-            "FLMR_QUESTION_ENCODER_PRETRAINED_MODEL_ARCHIVE_LIST",
-            "FLMR_READER_PRETRAINED_MODEL_ARCHIVE_LIST",
-            "FLMRContextEncoder",
-            "FLMRPretrainedContextEncoder",
+            "FLMR_PRETRAINED_MODEL_ARCHIVE_LIST",
+            "FLMRVisionModel",
             "FLMRPreTrainedModel",
-            "FLMRPretrainedQuestionEncoder",
-            "FLMRPretrainedReader",
-            "FLMRQuestionEncoder",
-            "FLMRReader",
+            "FLMRTextModel",
             "FLMRModelForRetrieval",
-            "FLMRModelForIndexing",
             "FLMRPretrainedModelForRetrieval",
         ]
     )
@@ -5156,8 +5148,6 @@ if TYPE_CHECKING:
         FLMRConfig,
         FLMRContextEncoderTokenizer,
         FLMRQueryEncoderTokenizer,
-        FLMRReaderOutput,
-        FLMRReaderTokenizer,
     )
     from .models.dpt import DPT_PRETRAINED_CONFIG_ARCHIVE_MAP, DPTConfig
     from .models.efficientformer import (
@@ -5923,8 +5913,7 @@ if TYPE_CHECKING:
         )
         from .models.flmr import (
             FLMRContextEncoderTokenizerFast,
-            FLMRTokenizerFast,
-            FLMRReaderTokenizerFast,
+            FLMRQueryEncoderTokenizerFast,
         )
         from .models.electra import ElectraTokenizerFast
         from .models.fnet import FNetTokenizerFast
@@ -6700,16 +6689,10 @@ if TYPE_CHECKING:
             DPRReader,
         )
         from .models.flmr import (
-            FLMR_CONTEXT_ENCODER_PRETRAINED_MODEL_ARCHIVE_LIST,
-            FLMR_QUESTION_ENCODER_PRETRAINED_MODEL_ARCHIVE_LIST,
-            FLMR_READER_PRETRAINED_MODEL_ARCHIVE_LIST,
-            FLMRContextEncoder,
-            FLMRPretrainedContextEncoder,
+            FLMR_PRETRAINED_MODEL_ARCHIVE_LIST,
+            FLMRVisionModel,
             FLMRPreTrainedModel,
-            FLMRPretrainedQuestionEncoder,
-            FLMRPretrainedReader,
-            FLMRQuestionEncoder,
-            FLMRReader,
+            FLMRTextModel,
             FLMRModelForRetrieval,
             FLMRPretrainedModelForRetrieval,
         )

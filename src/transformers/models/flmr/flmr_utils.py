@@ -1,3 +1,7 @@
+"""
+This file contains utility functions for the FLMR model. Some of these functions are adapted from the original ColBERT codebase.
+"""
+
 import torch
 import torch.distributed as dist
 
@@ -41,3 +45,30 @@ def colbert_score(Q, D_padded, D_mask, use_gpu=False):
     scores = D_padded @ Q.to(dtype=D_padded.dtype).permute(0, 2, 1)
 
     return colbert_score_reduce(scores, D_mask)
+
+def _sort_by_length(ids, mask, bsize, *args):
+    if ids.size(0) <= bsize:
+        return ids, mask, torch.arange(ids.size(0))
+
+    indices = mask.sum(-1).sort().indices
+    reverse_indices = indices.sort().indices
+    
+    return_array = [ids[indices], mask[indices]]
+    for arg in args:
+        if isinstance(arg, torch.Tensor):
+            return_array.append(arg[indices])
+        else:
+            # arg is a list, and we want to sort the list according to indices
+            return_array.append([arg[i] for i in indices])
+
+    return *return_array, reverse_indices
+
+
+def _split_into_batches(ids, mask, bsize, *args):
+    batches = []
+    for offset in range(0, ids.size(0), bsize):
+        batch = [ids[offset:offset+bsize], mask[offset:offset+bsize]]
+        for arg in args:
+            batch.append(arg[offset:offset+bsize])
+        batches.append(batch)
+    return batches

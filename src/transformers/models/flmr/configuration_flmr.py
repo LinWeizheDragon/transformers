@@ -25,7 +25,8 @@ from ...utils import logging
 logger = logging.get_logger(__name__)
 
 FLMR_PRETRAINED_CONFIG_ARCHIVE_MAP = {
-    "weizhelin/flmr": "https://huggingface.co/weizhelin/flmr/resolve/main/config.json",
+    "BByrneLab/PreFLMR_ViT-G": "https://huggingface.co/BByrneLab/PreFLMR_ViT-G/resolve/main/config.json",
+    "BByrneLab/FLMR": "https://huggingface.co/BByrneLab/FLMR/resolve/main/config.json",
 }
 
 # Copied from transformers.models.clip.configuration_clip.CLIPVisionConfig with CLIP -> FLMR
