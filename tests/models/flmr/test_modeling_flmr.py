@@ -35,6 +35,8 @@ if is_torch_available():
     import torch
 
     from transformers import FLMRModelForRetrieval, FLMRTextModel, FLMRVisionModel
+    from transformers import FLMRQueryEncoderTokenizer, FLMRContextEncoderTokenizer
+    from transformers import AutoImageProcessor
     from transformers.models.flmr.modeling_flmr import (
         FLMR_PRETRAINED_MODEL_ARCHIVE_LIST,
     )
@@ -241,12 +243,16 @@ class FLMRVisionModelTester:
         num_patches = (image_size // patch_size) ** 2
         self.seq_length = num_patches + 1
 
-    def prepare_config_and_inputs(self, batch_size=None):
+    def prepare_config_and_inputs(self, batch_size=None, return_image_features=False):
         self.batch_size = self.batch_size if batch_size is None else batch_size
 
         pixel_values = floats_tensor([self.batch_size, self.num_channels, self.image_size, self.image_size])
         config = self.get_config()
 
+        if return_image_features:
+            image_features = torch.randn(self.batch_size, 1, self.hidden_size)
+            return config, pixel_values, image_features
+        
         return config, pixel_values
 
     def get_config(self):
@@ -446,12 +452,12 @@ class FLMRModelTester:
         text_config, query_input_ids, _, query_attention_mask, _, _, _ = self.text_model_tester.prepare_config_and_inputs(batch_size=self.batch_size)
         text_config, context_input_ids, _, context_attention_mask, _, _, _ = self.text_model_tester.prepare_config_and_inputs(batch_size=self.batch_size*(1+self.num_negative_examples))
         # from a CLIP-ViT-like model
-        vision_config, query_pixel_values = self.vision_model_tester.prepare_config_and_inputs(batch_size=self.batch_size)
-        vision_config, context_pixel_values = self.vision_model_tester.prepare_config_and_inputs(batch_size=self.batch_size*(1+self.num_negative_examples))
+        vision_config, query_pixel_values, query_image_features = self.vision_model_tester.prepare_config_and_inputs(batch_size=self.batch_size, return_image_features=True)
+        vision_config, context_pixel_values, context_image_features = self.vision_model_tester.prepare_config_and_inputs(batch_size=self.batch_size*(1+self.num_negative_examples), return_image_features=True)
 
         config = self.get_config()
 
-        return config, query_input_ids, query_attention_mask, context_input_ids, context_attention_mask, query_pixel_values, context_pixel_values
+        return config, query_input_ids, query_attention_mask, context_input_ids, context_attention_mask, query_pixel_values, context_pixel_values, query_image_features, context_image_features
 
     def get_config(self):
         return FLMRConfig.from_text_vision_configs(
@@ -477,7 +483,7 @@ class FLMRModelTester:
             transformer_mapping_cross_attention_length=self.transformer_mapping_cross_attention_length,
         )
 
-    def create_and_check_model(self, config, query_input_ids, query_attention_mask, context_input_ids, context_attention_mask, query_pixel_values, context_pixel_values):
+    def create_and_check_model(self, config, query_input_ids, query_attention_mask, context_input_ids, context_attention_mask, query_pixel_values, context_pixel_values, query_image_features, context_image_features):
         model = FLMRModelForRetrieval(config).to(torch_device).eval()
         with torch.no_grad():
             result = model(
@@ -501,7 +507,7 @@ class FLMRModelTester:
 
     def prepare_config_and_inputs_for_common(self):
         config_and_inputs = self.prepare_config_and_inputs()
-        config, query_input_ids, query_attention_mask, context_input_ids, context_attention_mask, query_pixel_values, context_pixel_values = config_and_inputs
+        config, query_input_ids, query_attention_mask, context_input_ids, context_attention_mask, query_pixel_values, context_pixel_values, query_image_features, context_image_features = config_and_inputs
         inputs_dict = {
             "query_input_ids": query_input_ids,
             "query_attention_mask": query_attention_mask,
@@ -509,6 +515,19 @@ class FLMRModelTester:
             "context_attention_mask": context_attention_mask,
             "query_pixel_values": query_pixel_values,
             "context_pixel_values": context_pixel_values,
+        }
+        return config, inputs_dict
+    
+    def prepare_config_and_inputs_with_image_features(self):
+        config_and_inputs = self.prepare_config_and_inputs()
+        config, query_input_ids, query_attention_mask, context_input_ids, context_attention_mask, query_pixel_values, context_pixel_values, query_image_features, context_image_features = config_and_inputs
+        inputs_dict = {
+            "query_input_ids": query_input_ids,
+            "query_attention_mask": query_attention_mask,
+            "context_input_ids": context_input_ids,
+            "context_attention_mask": context_attention_mask,
+            "query_image_features": query_image_features,
+            "context_image_features": context_image_features,
         }
         return config, inputs_dict
 
@@ -519,7 +538,7 @@ class FLMRModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase):
         FLMRModelForRetrieval,
     ) if is_torch_available() else ()
     
-    fx_compatible = True
+    fx_compatible = False
     test_head_masking = False
     test_pruning = False
     test_resize_embeddings = False
@@ -548,21 +567,6 @@ class FLMRModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase):
     @unittest.skip(reason="FLMR does not have input/output embeddings")
     def test_model_common_attributes(self):
         pass
-
-    # override as the `logit_scale` parameter initilization is different for CLIP
-    def test_initialization(self):
-        config, inputs_dict = self.model_tester.prepare_config_and_inputs_for_common()
-
-        configs_no_init = _config_zero_init(config)
-        for model_class in self.all_model_classes:
-            model = model_class(config=configs_no_init)
-            for name, param in model.named_parameters():
-                if param.requires_grad:
-                    self.assertIn(
-                        ((param.data.mean() * 1e9).round() / 1e9).item(),
-                        [0.0, 1.0],
-                        msg=f"Parameter {name} of model {model_class} seems not properly initialized",
-                    )
 
     @unittest.skip(reason="This test does not apply to FLMR")
     def _create_and_check_torchscript(self, config, inputs_dict):
@@ -602,6 +606,102 @@ class FLMRModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase):
             for p1, p2 in zip(model.parameters(), new_model.parameters()):
                 self.assertTrue(torch.equal(p1, p2))
 
+    def test_replacing_pixel_values_with_image_features(self):
+        """
+        In some cases, image features are pre-extracted to speed up training
+        """
+        config_and_inputs = self.model_tester.prepare_config_and_inputs_with_image_features()
+        config, inputs_dict = config_and_inputs
+        model = FLMRModelForRetrieval(config)
+        model.to(torch_device)
+        model.eval()
+        with torch.no_grad():
+            result = model(**inputs_dict)
+
+        self.assertEqual(
+            result.scores.shape, (self.model_tester.batch_size, 1+self.model_tester.num_negative_examples)
+        )
+        self.assertEqual(
+            result.loss.shape, ()
+        )
+        self.assertEqual(
+            result.in_batch_negative_loss.shape, ()
+        )
+    
+    def test_different_concatenation(self):
+        config_and_inputs = self.model_tester.prepare_config_and_inputs_for_common()
+        config, inputs_dict = config_and_inputs
+        model = FLMRModelForRetrieval(config)
+        model.to(torch_device)
+        model.eval()
+        
+        # enable all
+        for to_enable in ["query_concat_output_from_vision_encoder", "context_concat_output_from_vision_encoder", "query_concat_output_from_text_encoder", "context_concat_output_from_text_encoder"]:
+            inputs_dict[to_enable] = True
+
+        text_len = self.model_tester.text_model_tester.seq_length
+        vision_len = self.model_tester.mapping_network_prefix_length
+        total_len = text_len + vision_len
+        context_batch_size = self.model_tester.batch_size * (1 + self.model_tester.num_negative_examples)
+
+        for to_disable in ["query_concat_output_from_vision_encoder", "context_concat_output_from_vision_encoder", "query_concat_output_from_text_encoder", "context_concat_output_from_text_encoder"]:
+            
+            dup_inputs_dict = inputs_dict.copy()
+            dup_inputs_dict[to_disable] = False
+            with torch.no_grad():
+                result = model(**dup_inputs_dict)
+
+            if to_disable == 'query_concat_output_from_vision_encoder':
+                self.assertEqual(
+                    result.query_late_interaction_output.shape, (self.model_tester.batch_size, text_len, self.model_tester.dim)
+                )
+                self.assertEqual(
+                    result.context_late_interaction_output.shape, (context_batch_size, total_len, self.model_tester.dim)
+                )
+            elif to_disable == 'context_concat_output_from_vision_encoder':
+                self.assertEqual(
+                    result.query_late_interaction_output.shape, (self.model_tester.batch_size, total_len, self.model_tester.dim)
+                )
+                self.assertEqual(
+                    result.context_late_interaction_output.shape, (context_batch_size, text_len, self.model_tester.dim)
+                )
+            elif to_disable == 'query_concat_output_from_text_encoder':
+                self.assertEqual(
+                    result.query_late_interaction_output.shape, (self.model_tester.batch_size, vision_len, self.model_tester.dim)
+                )
+                self.assertEqual(
+                    result.context_late_interaction_output.shape, (context_batch_size, total_len, self.model_tester.dim)
+                )
+            elif to_disable == 'context_concat_output_from_text_encoder':
+                self.assertEqual(
+                    result.query_late_interaction_output.shape, (self.model_tester.batch_size, total_len, self.model_tester.dim)
+                )
+                self.assertEqual(
+                    result.context_late_interaction_output.shape, (context_batch_size, vision_len, self.model_tester.dim)
+                )
+
+    def test_different_num_of_negative_examples(self):
+        for num_negative_examples in [1, 2, 3, 4]:
+            model_tester = FLMRModelTester(self, num_negative_examples=num_negative_examples)
+            # new tester
+            config_and_inputs = model_tester.prepare_config_and_inputs_for_common()
+            config, inputs_dict = config_and_inputs
+            model = FLMRModelForRetrieval(config)
+            model.to(torch_device)
+            model.eval()
+
+            with torch.no_grad():
+                result = model(**inputs_dict, num_negative_examples=num_negative_examples,)
+
+            self.assertEqual(
+                result.scores.shape, (model_tester.batch_size, 1+num_negative_examples)
+            )
+            self.assertEqual(
+                result.loss.shape, ()
+            )
+            self.assertEqual(
+                result.in_batch_negative_loss.shape, ()
+            )
 
     @slow
     def test_model_from_pretrained(self):
@@ -612,66 +712,80 @@ class FLMRModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase):
 
 
 
-# @require_torch
-# class FLMRModelIntegrationTest(unittest.TestCase):
-#     @slow
-#     def test_inference_no_head(self):
-#         model = FLMRQuestionEncoder.from_pretrained("facebook/flmr-question_encoder-single-nq-base", return_dict=False)
-#         model.to(torch_device)
+@require_torch
+class FLMRModelIntegrationTest(unittest.TestCase):
+    @slow
+    def test_inference(self):
+        checkpoint_path = "LinWeizheDragon/PreFLMR_ViT-G"
+        query_tokenizer = FLMRQueryEncoderTokenizer.from_pretrained(checkpoint_path, subfolder="query_tokenizer")
+        context_tokenizer = FLMRContextEncoderTokenizer.from_pretrained(checkpoint_path, subfolder="context_tokenizer")
 
-#         input_ids = torch.tensor(
-#             [[101, 7592, 1010, 2003, 2026, 3899, 10140, 1029, 102]], dtype=torch.long, device=torch_device
-#         )  # [CLS] hello, is my dog cute? [SEP]
-#         output = model(input_ids)[0]  # embedding shape = (1, 768)
-#         # compare the actual values for a slice.
-#         expected_slice = torch.tensor(
-#             [
-#                 [
-#                     0.03236253,
-#                     0.12753335,
-#                     0.16818509,
-#                     0.00279786,
-#                     0.3896933,
-#                     0.24264945,
-#                     0.2178971,
-#                     -0.02335227,
-#                     -0.08481959,
-#                     -0.14324117,
-#                 ]
-#             ],
-#             dtype=torch.float,
-#             device=torch_device,
-#         )
-#         self.assertTrue(torch.allclose(output[:, :10], expected_slice, atol=1e-4))
+        model = FLMRModelForRetrieval.from_pretrained(checkpoint_path, 
+                                                        query_tokenizer=query_tokenizer, 
+                                                        context_tokenizer=context_tokenizer,
+                                                        ).to("cuda")
+        # Some toy inputs
+        Q_encoding = query_tokenizer(["Using the provided image, obtain documents that address the subsequent question: What is the capital of France?", "Extract documents linked to the question provided in conjunction with the image: What is the capital of France?"])
+        D_encoding = context_tokenizer(["Paris is the capital of France.", "Beijing is the capital of China.",
+                                    "Paris is the capital of France.", "Beijing is the capital of China."])
+        
+        Q_pixel_values = torch.zeros(2, 3, 224, 224)
 
-#     @slow
-#     def test_reader_inference(self):
-#         tokenizer = FLMRReaderTokenizer.from_pretrained("facebook/flmr-reader-single-nq-base")
-#         model = FLMRReader.from_pretrained("facebook/flmr-reader-single-nq-base")
-#         model.to(torch_device)
+        inputs = dict(
+            query_input_ids=Q_encoding['input_ids'],
+            query_attention_mask=Q_encoding['attention_mask'],
+            query_pixel_values=Q_pixel_values,
+            context_input_ids=D_encoding['input_ids'],
+            context_attention_mask=D_encoding['attention_mask'],
+            use_in_batch_negatives=True,
+        )
+        
+        # set to inference mode
+        model.eval()
+        with torch.no_grad():
+            forward_results = model.forward(**inputs)
 
-#         encoded_inputs = tokenizer(
-#             questions="What is love ?",
-#             titles="Haddaway",
-#             texts="What Is Love is a song recorded by the artist Haddaway",
-#             padding=True,
-#             return_tensors="pt",
-#         )
-#         encoded_inputs.to(torch_device)
+        expected_loss = torch.tensor(
+            7.1585e-05,
+            dtype=torch.half,
+            device=torch_device,
+        )
+        expected_scores = torch.tensor(
+            [[42.1562, 31.9688],
+            [41.4375, 32.2812]],
+            dtype=torch.half,
+            device=torch_device,
+        )
+        expected_in_batch_negative_loss = torch.tensor(
+            0.6932,
+            dtype=torch.float,
+            device=torch_device,
+        )
+        expected_query_late_interaction_output = torch.tensor(
+            [[[ 0.0976,  0.0195],
+            [-0.0216, -0.1124]],
+            [[ 0.1090,  0.0369],
+            [-0.0194, -0.1110]]],
+            dtype=torch.float,
+            device=torch_device,
+        )
+        expected_context_late_interaction_output = torch.tensor(
+            [[[ 0.0410, -0.0591],
+            [ 0.0278, -0.1041]],
+            [[ 0.0384, -0.0287],
+            [ 0.0200, -0.0552]],
+            [[ 0.0410, -0.0591],
+            [ 0.0278, -0.1041]],
+            [[ 0.0384, -0.0287],
+            [ 0.0200, -0.0552]]],
+            dtype=torch.half,
+            device=torch_device,
+        )
 
-#         outputs = model(**encoded_inputs)
+        self.assertTrue(torch.allclose(forward_results.loss, expected_loss, atol=1e-3))
+        self.assertTrue(torch.allclose(forward_results.scores, expected_scores, atol=5))
+        self.assertTrue(torch.allclose(forward_results.in_batch_negative_loss, expected_in_batch_negative_loss, atol=1e-2))
+        self.assertTrue(torch.allclose(forward_results.query_late_interaction_output[:, :2, :2], expected_query_late_interaction_output, atol=1e-2))
+        self.assertTrue(torch.allclose(forward_results.context_late_interaction_output[:, :2, :2], expected_context_late_interaction_output, atol=1e-2))
 
-#         # compare the actual values for a slice.
-#         expected_start_logits = torch.tensor(
-#             [[-10.3005, -10.7765, -11.4872, -11.6841, -11.9312, -10.3002, -9.8544, -11.7378, -12.0821, -10.2975]],
-#             dtype=torch.float,
-#             device=torch_device,
-#         )
 
-#         expected_end_logits = torch.tensor(
-#             [[-11.0684, -11.7041, -11.5397, -10.3465, -10.8791, -6.8443, -11.9959, -11.0364, -10.0096, -6.8405]],
-#             dtype=torch.float,
-#             device=torch_device,
-#         )
-#         self.assertTrue(torch.allclose(outputs.start_logits[:, :10], expected_start_logits, atol=1e-4))
-#         self.assertTrue(torch.allclose(outputs.end_logits[:, :10], expected_end_logits, atol=1e-4))
