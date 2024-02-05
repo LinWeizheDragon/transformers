@@ -37,7 +37,6 @@ def colbert_score(Q, D_padded, D_mask, use_gpu=False):
     """
     if use_gpu:
         Q, D_padded, D_mask = Q.cuda(), D_padded.cuda(), D_mask.cuda()
-
     assert Q.dim() == 3, Q.size()
     assert D_padded.dim() == 3, D_padded.size()
     assert Q.size(0) in [1, D_padded.size(0)]
