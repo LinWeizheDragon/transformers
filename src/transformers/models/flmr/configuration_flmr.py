@@ -15,8 +15,7 @@
 """ FLMR model configuration"""
 
 import os
-from collections import OrderedDict
-from typing import TYPE_CHECKING, Any, Mapping, Optional, Union
+from typing import Union
 
 from ...configuration_utils import PretrainedConfig
 from ...utils import logging
@@ -28,6 +27,7 @@ FLMR_PRETRAINED_CONFIG_ARCHIVE_MAP = {
     "BByrneLab/PreFLMR_ViT-G": "https://huggingface.co/BByrneLab/PreFLMR_ViT-G/resolve/main/config.json",
     "BByrneLab/FLMR": "https://huggingface.co/BByrneLab/FLMR/resolve/main/config.json",
 }
+
 
 # Copied from transformers.models.clip.configuration_clip.CLIPVisionConfig with CLIP -> FLMR
 class FLMRVisionConfig(PretrainedConfig):
@@ -137,7 +137,6 @@ class FLMRVisionConfig(PretrainedConfig):
             )
 
         return cls.from_dict(config_dict, **kwargs)
-
 
 
 # Copied from transformers.models.dpr.configuration_dpr.DPRConfig with DPR -> FLMR
@@ -316,7 +315,7 @@ class FLMRConfig(PretrainedConfig):
 
     def __init__(
         self,
-        vision_config: FLMRVisionConfig = None, 
+        vision_config: FLMRVisionConfig = None,
         text_config: FLMRTextConfig = None,
         mask_punctuation: bool = True,
         mapping_network_prefix_length: int = 32,
@@ -351,7 +350,7 @@ class FLMRConfig(PretrainedConfig):
             vision_config = FLMRVisionConfig(**vision_config)
         if not isinstance(text_config, FLMRTextConfig):
             text_config = FLMRTextConfig(**text_config)
-        
+
         self.vision_config = vision_config
         self.text_config = text_config
         # self.vocab_size = vocab_size
@@ -388,7 +387,6 @@ class FLMRConfig(PretrainedConfig):
         self.load_cpu_extension = load_cpu_extension
         self.mask_instruction_token = mask_instruction_token
         self.transformer_mapping_cross_attention_length = transformer_mapping_cross_attention_length
-
 
     @classmethod
     def from_text_vision_configs(cls, text_config: FLMRTextConfig, vision_config: FLMRVisionConfig, **kwargs):

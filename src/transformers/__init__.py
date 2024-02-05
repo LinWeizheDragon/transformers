@@ -397,14 +397,6 @@ _import_structure = {
         "DPRReaderOutput",
         "DPRReaderTokenizer",
     ],
-    "models.flmr": [
-        "FLMR_PRETRAINED_CONFIG_ARCHIVE_MAP",
-        "FLMRConfig",
-        "FLMRVisionConfig",
-        "FLMRTextConfig",
-        "FLMRContextEncoderTokenizer",
-        "FLMRQueryEncoderTokenizer",
-    ],
     "models.dpt": ["DPT_PRETRAINED_CONFIG_ARCHIVE_MAP", "DPTConfig"],
     "models.efficientformer": [
         "EFFICIENTFORMER_PRETRAINED_CONFIG_ARCHIVE_MAP",
@@ -449,6 +441,14 @@ _import_structure = {
         "FlavaImageConfig",
         "FlavaMultimodalConfig",
         "FlavaTextConfig",
+    ],
+    "models.flmr": [
+        "FLMR_PRETRAINED_CONFIG_ARCHIVE_MAP",
+        "FLMRConfig",
+        "FLMRContextEncoderTokenizer",
+        "FLMRQueryEncoderTokenizer",
+        "FLMRTextConfig",
+        "FLMRVisionConfig",
     ],
     "models.fnet": ["FNET_PRETRAINED_CONFIG_ARCHIVE_MAP", "FNetConfig"],
     "models.focalnet": ["FOCALNET_PRETRAINED_CONFIG_ARCHIVE_MAP", "FocalNetConfig"],
@@ -1177,13 +1177,13 @@ else:
             "DPRReaderTokenizerFast",
         ]
     )
+    _import_structure["models.electra"].append("ElectraTokenizerFast")
     _import_structure["models.flmr"].extend(
         [
             "FLMRContextEncoderTokenizerFast",
             "FLMRQueryEncoderTokenizerFast",
         ]
     )
-    _import_structure["models.electra"].append("ElectraTokenizerFast")
     _import_structure["models.fnet"].append("FNetTokenizerFast")
     _import_structure["models.funnel"].append("FunnelTokenizerFast")
     _import_structure["models.gpt2"].append("GPT2TokenizerFast")
@@ -2067,16 +2067,6 @@ else:
             "DPRReader",
         ]
     )
-    _import_structure["models.flmr"].extend(
-        [
-            "FLMR_PRETRAINED_MODEL_ARCHIVE_LIST",
-            "FLMRVisionModel",
-            "FLMRPreTrainedModel",
-            "FLMRTextModel",
-            "FLMRModelForRetrieval",
-            "FLMRPretrainedModelForRetrieval",
-        ]
-    )
     _import_structure["models.dpt"].extend(
         [
             "DPT_PRETRAINED_MODEL_ARCHIVE_LIST",
@@ -2208,6 +2198,16 @@ else:
             "FlavaMultimodalModel",
             "FlavaPreTrainedModel",
             "FlavaTextModel",
+        ]
+    )
+    _import_structure["models.flmr"].extend(
+        [
+            "FLMR_PRETRAINED_MODEL_ARCHIVE_LIST",
+            "FLMRModelForRetrieval",
+            "FLMRPreTrainedModel",
+            "FLMRPretrainedModelForRetrieval",
+            "FLMRTextModel",
+            "FLMRVisionModel",
         ]
     )
     _import_structure["models.fnet"].extend(
@@ -5143,12 +5143,6 @@ if TYPE_CHECKING:
         DPRReaderOutput,
         DPRReaderTokenizer,
     )
-    from .models.flmr import (
-        FLMR_PRETRAINED_CONFIG_ARCHIVE_MAP,
-        FLMRConfig,
-        FLMRContextEncoderTokenizer,
-        FLMRQueryEncoderTokenizer,
-    )
     from .models.dpt import DPT_PRETRAINED_CONFIG_ARCHIVE_MAP, DPTConfig
     from .models.efficientformer import (
         EFFICIENTFORMER_PRETRAINED_CONFIG_ARCHIVE_MAP,
@@ -5190,6 +5184,12 @@ if TYPE_CHECKING:
         FlavaImageConfig,
         FlavaMultimodalConfig,
         FlavaTextConfig,
+    )
+    from .models.flmr import (
+        FLMR_PRETRAINED_CONFIG_ARCHIVE_MAP,
+        FLMRConfig,
+        FLMRContextEncoderTokenizer,
+        FLMRQueryEncoderTokenizer,
     )
     from .models.fnet import FNET_PRETRAINED_CONFIG_ARCHIVE_MAP, FNetConfig
     from .models.focalnet import FOCALNET_PRETRAINED_CONFIG_ARCHIVE_MAP, FocalNetConfig
@@ -5911,11 +5911,11 @@ if TYPE_CHECKING:
             DPRQuestionEncoderTokenizerFast,
             DPRReaderTokenizerFast,
         )
+        from .models.electra import ElectraTokenizerFast
         from .models.flmr import (
             FLMRContextEncoderTokenizerFast,
             FLMRQueryEncoderTokenizerFast,
         )
-        from .models.electra import ElectraTokenizerFast
         from .models.fnet import FNetTokenizerFast
         from .models.funnel import FunnelTokenizerFast
         from .models.gpt2 import GPT2TokenizerFast
@@ -6688,14 +6688,6 @@ if TYPE_CHECKING:
             DPRQuestionEncoder,
             DPRReader,
         )
-        from .models.flmr import (
-            FLMR_PRETRAINED_MODEL_ARCHIVE_LIST,
-            FLMRVisionModel,
-            FLMRPreTrainedModel,
-            FLMRTextModel,
-            FLMRModelForRetrieval,
-            FLMRPretrainedModelForRetrieval,
-        )
         from .models.dpt import (
             DPT_PRETRAINED_MODEL_ARCHIVE_LIST,
             DPTForDepthEstimation,
@@ -6804,6 +6796,14 @@ if TYPE_CHECKING:
             FlavaMultimodalModel,
             FlavaPreTrainedModel,
             FlavaTextModel,
+        )
+        from .models.flmr import (
+            FLMR_PRETRAINED_MODEL_ARCHIVE_LIST,
+            FLMRModelForRetrieval,
+            FLMRPreTrainedModel,
+            FLMRPretrainedModelForRetrieval,
+            FLMRTextModel,
+            FLMRVisionModel,
         )
         from .models.fnet import (
             FNET_PRETRAINED_MODEL_ARCHIVE_LIST,

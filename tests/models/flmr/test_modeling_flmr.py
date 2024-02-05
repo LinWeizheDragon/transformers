@@ -16,27 +16,30 @@
 import inspect
 import tempfile
 import unittest
-import numpy as np
 
-from transformers import FLMRConfig, FLMRVisionConfig, FLMRTextConfig, is_torch_available
+from transformers import FLMRConfig, FLMRTextConfig, FLMRVisionConfig, is_torch_available
 from transformers.testing_utils import require_torch, slow, torch_device
 
 from ...test_configuration_common import ConfigTester
-from ...test_pipeline_mixin import PipelineTesterMixin
 from ...test_modeling_common import (
     ModelTesterMixin,
-    _config_zero_init,
     floats_tensor,
     ids_tensor,
     random_attention_mask,
 )
+from ...test_pipeline_mixin import PipelineTesterMixin
+
 
 if is_torch_available():
     import torch
 
-    from transformers import FLMRModelForRetrieval, FLMRTextModel, FLMRVisionModel
-    from transformers import FLMRQueryEncoderTokenizer, FLMRContextEncoderTokenizer
-    from transformers import AutoImageProcessor
+    from transformers import (
+        FLMRContextEncoderTokenizer,
+        FLMRModelForRetrieval,
+        FLMRQueryEncoderTokenizer,
+        FLMRTextModel,
+        FLMRVisionModel,
+    )
     from transformers.models.flmr.modeling_flmr import (
         FLMR_PRETRAINED_MODEL_ARCHIVE_LIST,
     )
@@ -95,7 +98,6 @@ class FLMRTextModelTester:
         self.projection_dim = projection_dim
 
     def prepare_config_and_inputs(self, batch_size=None):
-        
         self.batch_size = self.batch_size if batch_size is None else batch_size
 
         input_ids = ids_tensor([self.batch_size, self.seq_length], self.vocab_size)
@@ -164,13 +166,7 @@ class FLMRTextModelTester:
 
 @require_torch
 class FLMRTextModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase):
-    all_model_classes = (
-        (
-            FLMRTextModel,
-        )
-        if is_torch_available()
-        else ()
-    )
+    all_model_classes = (FLMRTextModel,) if is_torch_available() else ()
     pipeline_model_mapping = {"feature-extraction": FLMRTextModel} if is_torch_available() else {}
 
     test_resize_embeddings = False
@@ -201,7 +197,6 @@ class FLMRTextModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase
             model = FLMRTextModel.from_pretrained(tmp_dirname, projection_dim=512)
 
         self.assertIsNotNone(model)
-
 
 
 class FLMRVisionModelTester:
@@ -252,7 +247,7 @@ class FLMRVisionModelTester:
         if return_image_features:
             image_features = torch.randn(self.batch_size, 1, self.hidden_size)
             return config, pixel_values, image_features
-        
+
         return config, pixel_values
 
     def get_config(self):
@@ -388,34 +383,34 @@ class FLMRVisionModelTest(ModelTesterMixin, unittest.TestCase):
     #         self.assertTrue(hasattr(model, "visual_projection"))
 
 
-
-
 class FLMRModelTester:
-    def __init__(self, 
-                parent, 
-                text_kwargs=None, 
-                vision_kwargs=None, 
-                batch_size=13,
-                mask_punctuation = True,
-                mapping_network_prefix_length = 4,
-                dim = 16,
-                use_vision_encoder = True,
-                initializer_range = 0.02,
-                vision_model_version = "openai/clip-vit-base-patch32",
-                separate_query_and_context_text_encoder = False,
-                separate_query_and_context_vision_encoder = False,
-                query_concat_output_from_vision_encoder = True,
-                query_concat_output_from_text_encoder = True,
-                context_concat_output_from_vision_encoder = False,
-                context_concat_output_from_text_encoder = True,
-                use_transformer_mapping_network = False,
-                transformer_mapping_config_base = None,
-                transformer_mapping_num_hidden_layers = None,
-                load_cpu_extension = False,
-                mask_instruction_token = None,
-                transformer_mapping_cross_attention_length = 32,
-                num_negative_examples=1,
-                is_training=True):
+    def __init__(
+        self,
+        parent,
+        text_kwargs=None,
+        vision_kwargs=None,
+        batch_size=13,
+        mask_punctuation=True,
+        mapping_network_prefix_length=4,
+        dim=16,
+        use_vision_encoder=True,
+        initializer_range=0.02,
+        vision_model_version="openai/clip-vit-base-patch32",
+        separate_query_and_context_text_encoder=False,
+        separate_query_and_context_vision_encoder=False,
+        query_concat_output_from_vision_encoder=True,
+        query_concat_output_from_text_encoder=True,
+        context_concat_output_from_vision_encoder=False,
+        context_concat_output_from_text_encoder=True,
+        use_transformer_mapping_network=False,
+        transformer_mapping_config_base=None,
+        transformer_mapping_num_hidden_layers=None,
+        load_cpu_extension=False,
+        mask_instruction_token=None,
+        transformer_mapping_cross_attention_length=32,
+        num_negative_examples=1,
+        is_training=True,
+    ):
         if text_kwargs is None:
             text_kwargs = {}
         if vision_kwargs is None:
@@ -449,19 +444,55 @@ class FLMRModelTester:
 
     def prepare_config_and_inputs(self):
         # from a DPR-like model
-        text_config, query_input_ids, _, query_attention_mask, _, _, _ = self.text_model_tester.prepare_config_and_inputs(batch_size=self.batch_size)
-        text_config, context_input_ids, _, context_attention_mask, _, _, _ = self.text_model_tester.prepare_config_and_inputs(batch_size=self.batch_size*(1+self.num_negative_examples))
+        (
+            text_config,
+            query_input_ids,
+            _,
+            query_attention_mask,
+            _,
+            _,
+            _,
+        ) = self.text_model_tester.prepare_config_and_inputs(batch_size=self.batch_size)
+        (
+            text_config,
+            context_input_ids,
+            _,
+            context_attention_mask,
+            _,
+            _,
+            _,
+        ) = self.text_model_tester.prepare_config_and_inputs(
+            batch_size=self.batch_size * (1 + self.num_negative_examples)
+        )
         # from a CLIP-ViT-like model
-        vision_config, query_pixel_values, query_image_features = self.vision_model_tester.prepare_config_and_inputs(batch_size=self.batch_size, return_image_features=True)
-        vision_config, context_pixel_values, context_image_features = self.vision_model_tester.prepare_config_and_inputs(batch_size=self.batch_size*(1+self.num_negative_examples), return_image_features=True)
+        vision_config, query_pixel_values, query_image_features = self.vision_model_tester.prepare_config_and_inputs(
+            batch_size=self.batch_size, return_image_features=True
+        )
+        (
+            vision_config,
+            context_pixel_values,
+            context_image_features,
+        ) = self.vision_model_tester.prepare_config_and_inputs(
+            batch_size=self.batch_size * (1 + self.num_negative_examples), return_image_features=True
+        )
 
         config = self.get_config()
 
-        return config, query_input_ids, query_attention_mask, context_input_ids, context_attention_mask, query_pixel_values, context_pixel_values, query_image_features, context_image_features
+        return (
+            config,
+            query_input_ids,
+            query_attention_mask,
+            context_input_ids,
+            context_attention_mask,
+            query_pixel_values,
+            context_pixel_values,
+            query_image_features,
+            context_image_features,
+        )
 
     def get_config(self):
         return FLMRConfig.from_text_vision_configs(
-            self.text_model_tester.get_config(), 
+            self.text_model_tester.get_config(),
             self.vision_model_tester.get_config(),
             dim=self.dim,
             initializer_range=self.initializer_range,
@@ -483,7 +514,18 @@ class FLMRModelTester:
             transformer_mapping_cross_attention_length=self.transformer_mapping_cross_attention_length,
         )
 
-    def create_and_check_model(self, config, query_input_ids, query_attention_mask, context_input_ids, context_attention_mask, query_pixel_values, context_pixel_values, query_image_features, context_image_features):
+    def create_and_check_model(
+        self,
+        config,
+        query_input_ids,
+        query_attention_mask,
+        context_input_ids,
+        context_attention_mask,
+        query_pixel_values,
+        context_pixel_values,
+        query_image_features,
+        context_image_features,
+    ):
         model = FLMRModelForRetrieval(config).to(torch_device).eval()
         with torch.no_grad():
             result = model(
@@ -494,20 +536,24 @@ class FLMRModelTester:
                 query_pixel_values=query_pixel_values,
                 context_pixel_values=context_pixel_values,
             )
-        
-        self.parent.assertEqual(
-            result.scores.shape, (self.batch_size, 1+self.num_negative_examples)
-        )
-        self.parent.assertEqual(
-            result.loss.shape, ()
-        )
-        self.parent.assertEqual(
-            result.in_batch_negative_loss.shape, ()
-        )
+
+        self.parent.assertEqual(result.scores.shape, (self.batch_size, 1 + self.num_negative_examples))
+        self.parent.assertEqual(result.loss.shape, ())
+        self.parent.assertEqual(result.in_batch_negative_loss.shape, ())
 
     def prepare_config_and_inputs_for_common(self):
         config_and_inputs = self.prepare_config_and_inputs()
-        config, query_input_ids, query_attention_mask, context_input_ids, context_attention_mask, query_pixel_values, context_pixel_values, query_image_features, context_image_features = config_and_inputs
+        (
+            config,
+            query_input_ids,
+            query_attention_mask,
+            context_input_ids,
+            context_attention_mask,
+            query_pixel_values,
+            context_pixel_values,
+            query_image_features,
+            context_image_features,
+        ) = config_and_inputs
         inputs_dict = {
             "query_input_ids": query_input_ids,
             "query_attention_mask": query_attention_mask,
@@ -517,10 +563,20 @@ class FLMRModelTester:
             "context_pixel_values": context_pixel_values,
         }
         return config, inputs_dict
-    
+
     def prepare_config_and_inputs_with_image_features(self):
         config_and_inputs = self.prepare_config_and_inputs()
-        config, query_input_ids, query_attention_mask, context_input_ids, context_attention_mask, query_pixel_values, context_pixel_values, query_image_features, context_image_features = config_and_inputs
+        (
+            config,
+            query_input_ids,
+            query_attention_mask,
+            context_input_ids,
+            context_attention_mask,
+            query_pixel_values,
+            context_pixel_values,
+            query_image_features,
+            context_image_features,
+        ) = config_and_inputs
         inputs_dict = {
             "query_input_ids": query_input_ids,
             "query_attention_mask": query_attention_mask,
@@ -534,10 +590,8 @@ class FLMRModelTester:
 
 @require_torch
 class FLMRModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase):
-    all_model_classes = (
-        FLMRModelForRetrieval,
-    ) if is_torch_available() else ()
-    
+    all_model_classes = (FLMRModelForRetrieval,) if is_torch_available() else ()
+
     fx_compatible = False
     test_head_masking = False
     test_pruning = False
@@ -589,20 +643,16 @@ class FLMRModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase):
                     "context_attention_mask",
                     "context_pixel_values",
                 ]
-                expected_arg_names.extend(
-                    []
-                )
+                expected_arg_names.extend([])
                 self.assertListEqual(arg_names[: len(expected_arg_names)], expected_arg_names)
-    
+
     def test_from_pretrained_no_checkpoint(self):
         config, _ = self.model_tester.prepare_config_and_inputs_for_common()
         for model_class in self.all_model_classes:
             model = model_class(config)
             state_dict = model.state_dict()
 
-            new_model = model_class.from_pretrained(
-                name_or_path=None, config=config, state_dict=state_dict
-            )
+            new_model = model_class.from_pretrained(name_or_path=None, config=config, state_dict=state_dict)
             for p1, p2 in zip(model.parameters(), new_model.parameters()):
                 self.assertTrue(torch.equal(p1, p2))
 
@@ -619,24 +669,25 @@ class FLMRModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase):
             result = model(**inputs_dict)
 
         self.assertEqual(
-            result.scores.shape, (self.model_tester.batch_size, 1+self.model_tester.num_negative_examples)
+            result.scores.shape, (self.model_tester.batch_size, 1 + self.model_tester.num_negative_examples)
         )
-        self.assertEqual(
-            result.loss.shape, ()
-        )
-        self.assertEqual(
-            result.in_batch_negative_loss.shape, ()
-        )
-    
+        self.assertEqual(result.loss.shape, ())
+        self.assertEqual(result.in_batch_negative_loss.shape, ())
+
     def test_different_concatenation(self):
         config_and_inputs = self.model_tester.prepare_config_and_inputs_for_common()
         config, inputs_dict = config_and_inputs
         model = FLMRModelForRetrieval(config)
         model.to(torch_device)
         model.eval()
-        
+
         # enable all
-        for to_enable in ["query_concat_output_from_vision_encoder", "context_concat_output_from_vision_encoder", "query_concat_output_from_text_encoder", "context_concat_output_from_text_encoder"]:
+        for to_enable in [
+            "query_concat_output_from_vision_encoder",
+            "context_concat_output_from_vision_encoder",
+            "query_concat_output_from_text_encoder",
+            "context_concat_output_from_text_encoder",
+        ]:
             inputs_dict[to_enable] = True
 
         text_len = self.model_tester.text_model_tester.seq_length
@@ -644,40 +695,51 @@ class FLMRModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase):
         total_len = text_len + vision_len
         context_batch_size = self.model_tester.batch_size * (1 + self.model_tester.num_negative_examples)
 
-        for to_disable in ["query_concat_output_from_vision_encoder", "context_concat_output_from_vision_encoder", "query_concat_output_from_text_encoder", "context_concat_output_from_text_encoder"]:
-            
+        for to_disable in [
+            "query_concat_output_from_vision_encoder",
+            "context_concat_output_from_vision_encoder",
+            "query_concat_output_from_text_encoder",
+            "context_concat_output_from_text_encoder",
+        ]:
             dup_inputs_dict = inputs_dict.copy()
             dup_inputs_dict[to_disable] = False
             with torch.no_grad():
                 result = model(**dup_inputs_dict)
 
-            if to_disable == 'query_concat_output_from_vision_encoder':
+            if to_disable == "query_concat_output_from_vision_encoder":
                 self.assertEqual(
-                    result.query_late_interaction_output.shape, (self.model_tester.batch_size, text_len, self.model_tester.dim)
+                    result.query_late_interaction_output.shape,
+                    (self.model_tester.batch_size, text_len, self.model_tester.dim),
                 )
                 self.assertEqual(
-                    result.context_late_interaction_output.shape, (context_batch_size, total_len, self.model_tester.dim)
+                    result.context_late_interaction_output.shape,
+                    (context_batch_size, total_len, self.model_tester.dim),
                 )
-            elif to_disable == 'context_concat_output_from_vision_encoder':
+            elif to_disable == "context_concat_output_from_vision_encoder":
                 self.assertEqual(
-                    result.query_late_interaction_output.shape, (self.model_tester.batch_size, total_len, self.model_tester.dim)
+                    result.query_late_interaction_output.shape,
+                    (self.model_tester.batch_size, total_len, self.model_tester.dim),
                 )
                 self.assertEqual(
                     result.context_late_interaction_output.shape, (context_batch_size, text_len, self.model_tester.dim)
                 )
-            elif to_disable == 'query_concat_output_from_text_encoder':
+            elif to_disable == "query_concat_output_from_text_encoder":
                 self.assertEqual(
-                    result.query_late_interaction_output.shape, (self.model_tester.batch_size, vision_len, self.model_tester.dim)
+                    result.query_late_interaction_output.shape,
+                    (self.model_tester.batch_size, vision_len, self.model_tester.dim),
                 )
                 self.assertEqual(
-                    result.context_late_interaction_output.shape, (context_batch_size, total_len, self.model_tester.dim)
+                    result.context_late_interaction_output.shape,
+                    (context_batch_size, total_len, self.model_tester.dim),
                 )
-            elif to_disable == 'context_concat_output_from_text_encoder':
+            elif to_disable == "context_concat_output_from_text_encoder":
                 self.assertEqual(
-                    result.query_late_interaction_output.shape, (self.model_tester.batch_size, total_len, self.model_tester.dim)
+                    result.query_late_interaction_output.shape,
+                    (self.model_tester.batch_size, total_len, self.model_tester.dim),
                 )
                 self.assertEqual(
-                    result.context_late_interaction_output.shape, (context_batch_size, vision_len, self.model_tester.dim)
+                    result.context_late_interaction_output.shape,
+                    (context_batch_size, vision_len, self.model_tester.dim),
                 )
 
     def test_different_num_of_negative_examples(self):
@@ -691,25 +753,20 @@ class FLMRModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase):
             model.eval()
 
             with torch.no_grad():
-                result = model(**inputs_dict, num_negative_examples=num_negative_examples,)
+                result = model(
+                    **inputs_dict,
+                    num_negative_examples=num_negative_examples,
+                )
 
-            self.assertEqual(
-                result.scores.shape, (model_tester.batch_size, 1+num_negative_examples)
-            )
-            self.assertEqual(
-                result.loss.shape, ()
-            )
-            self.assertEqual(
-                result.in_batch_negative_loss.shape, ()
-            )
+            self.assertEqual(result.scores.shape, (model_tester.batch_size, 1 + num_negative_examples))
+            self.assertEqual(result.loss.shape, ())
+            self.assertEqual(result.in_batch_negative_loss.shape, ())
 
     @slow
     def test_model_from_pretrained(self):
         for model_name in FLMR_PRETRAINED_MODEL_ARCHIVE_LIST:
             model = FLMRModelForRetrieval.from_pretrained(model_name)
             self.assertIsNotNone(model)
-
-
 
 
 @require_torch
@@ -720,26 +777,38 @@ class FLMRModelIntegrationTest(unittest.TestCase):
         query_tokenizer = FLMRQueryEncoderTokenizer.from_pretrained(checkpoint_path, subfolder="query_tokenizer")
         context_tokenizer = FLMRContextEncoderTokenizer.from_pretrained(checkpoint_path, subfolder="context_tokenizer")
 
-        model = FLMRModelForRetrieval.from_pretrained(checkpoint_path, 
-                                                        query_tokenizer=query_tokenizer, 
-                                                        context_tokenizer=context_tokenizer,
-                                                        ).to("cuda")
+        model = FLMRModelForRetrieval.from_pretrained(
+            checkpoint_path,
+            query_tokenizer=query_tokenizer,
+            context_tokenizer=context_tokenizer,
+        ).to("cuda")
         # Some toy inputs
-        Q_encoding = query_tokenizer(["Using the provided image, obtain documents that address the subsequent question: What is the capital of France?", "Extract documents linked to the question provided in conjunction with the image: What is the capital of France?"])
-        D_encoding = context_tokenizer(["Paris is the capital of France.", "Beijing is the capital of China.",
-                                    "Paris is the capital of France.", "Beijing is the capital of China."])
-        
+        Q_encoding = query_tokenizer(
+            [
+                "Using the provided image, obtain documents that address the subsequent question: What is the capital of France?",
+                "Extract documents linked to the question provided in conjunction with the image: What is the capital of France?",
+            ]
+        )
+        D_encoding = context_tokenizer(
+            [
+                "Paris is the capital of France.",
+                "Beijing is the capital of China.",
+                "Paris is the capital of France.",
+                "Beijing is the capital of China.",
+            ]
+        )
+
         Q_pixel_values = torch.zeros(2, 3, 224, 224)
 
-        inputs = dict(
-            query_input_ids=Q_encoding['input_ids'],
-            query_attention_mask=Q_encoding['attention_mask'],
-            query_pixel_values=Q_pixel_values,
-            context_input_ids=D_encoding['input_ids'],
-            context_attention_mask=D_encoding['attention_mask'],
-            use_in_batch_negatives=True,
-        )
-        
+        inputs = {
+            "query_input_ids": Q_encoding["input_ids"],
+            "query_attention_mask": Q_encoding["attention_mask"],
+            "query_pixel_values": Q_pixel_values,
+            "context_input_ids": D_encoding["input_ids"],
+            "context_attention_mask": D_encoding["attention_mask"],
+            "use_in_batch_negatives": True,
+        }
+
         # set to inference mode
         model.eval()
         with torch.no_grad():
@@ -751,8 +820,7 @@ class FLMRModelIntegrationTest(unittest.TestCase):
             device=torch_device,
         )
         expected_scores = torch.tensor(
-            [[42.1562, 31.9688],
-            [41.4375, 32.2812]],
+            [[42.1562, 31.9688], [41.4375, 32.2812]],
             dtype=torch.half,
             device=torch_device,
         )
@@ -762,30 +830,37 @@ class FLMRModelIntegrationTest(unittest.TestCase):
             device=torch_device,
         )
         expected_query_late_interaction_output = torch.tensor(
-            [[[ 0.0976,  0.0195],
-            [-0.0216, -0.1124]],
-            [[ 0.1090,  0.0369],
-            [-0.0194, -0.1110]]],
+            [[[0.0976, 0.0195], [-0.0216, -0.1124]], [[0.1090, 0.0369], [-0.0194, -0.1110]]],
             dtype=torch.float,
             device=torch_device,
         )
         expected_context_late_interaction_output = torch.tensor(
-            [[[ 0.0410, -0.0591],
-            [ 0.0278, -0.1041]],
-            [[ 0.0384, -0.0287],
-            [ 0.0200, -0.0552]],
-            [[ 0.0410, -0.0591],
-            [ 0.0278, -0.1041]],
-            [[ 0.0384, -0.0287],
-            [ 0.0200, -0.0552]]],
+            [
+                [[0.0410, -0.0591], [0.0278, -0.1041]],
+                [[0.0384, -0.0287], [0.0200, -0.0552]],
+                [[0.0410, -0.0591], [0.0278, -0.1041]],
+                [[0.0384, -0.0287], [0.0200, -0.0552]],
+            ],
             dtype=torch.half,
             device=torch_device,
         )
 
         self.assertTrue(torch.allclose(forward_results.loss, expected_loss, atol=1e-3))
         self.assertTrue(torch.allclose(forward_results.scores, expected_scores, atol=5))
-        self.assertTrue(torch.allclose(forward_results.in_batch_negative_loss, expected_in_batch_negative_loss, atol=1e-2))
-        self.assertTrue(torch.allclose(forward_results.query_late_interaction_output[:, :2, :2], expected_query_late_interaction_output, atol=1e-2))
-        self.assertTrue(torch.allclose(forward_results.context_late_interaction_output[:, :2, :2], expected_context_late_interaction_output, atol=1e-2))
-
-
+        self.assertTrue(
+            torch.allclose(forward_results.in_batch_negative_loss, expected_in_batch_negative_loss, atol=1e-2)
+        )
+        self.assertTrue(
+            torch.allclose(
+                forward_results.query_late_interaction_output[:, :2, :2],
+                expected_query_late_interaction_output,
+                atol=1e-2,
+            )
+        )
+        self.assertTrue(
+            torch.allclose(
+                forward_results.context_late_interaction_output[:, :2, :2],
+                expected_context_late_interaction_output,
+                atol=1e-2,
+            )
+        )

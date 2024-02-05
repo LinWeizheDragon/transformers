@@ -23,7 +23,7 @@ from ...utils import (
 
 
 _import_structure = {
-    "configuration_flmr": ["FLMR_PRETRAINED_CONFIG_ARCHIVE_MAP", "FLMRConfig", "FLMRVisionConfig", "FLMRTextConfig"],
+    "configuration_flmr": ["FLMR_PRETRAINED_CONFIG_ARCHIVE_MAP", "FLMRConfig", "FLMRTextConfig", "FLMRVisionConfig"],
     "tokenization_flmr": [
         "FLMRContextEncoderTokenizer",
         "FLMRQueryEncoderTokenizer",
@@ -58,7 +58,7 @@ else:
     ]
 
 if TYPE_CHECKING:
-    from .configuration_flmr import FLMR_PRETRAINED_CONFIG_ARCHIVE_MAP, FLMRConfig, FLMRVisionConfig, FLMRTextConfig
+    from .configuration_flmr import FLMR_PRETRAINED_CONFIG_ARCHIVE_MAP, FLMRConfig, FLMRTextConfig, FLMRVisionConfig
     from .tokenization_flmr import (
         FLMRContextEncoderTokenizer,
         FLMRQueryEncoderTokenizer,
@@ -83,11 +83,11 @@ if TYPE_CHECKING:
     else:
         from .modeling_flmr import (
             FLMR_PRETRAINED_MODEL_ARCHIVE_LIST,
-            FLMRVisionModel,
-            FLMRPreTrainedModel,
-            FLMRTextModel,
             FLMRModelForRetrieval,
+            FLMRPreTrainedModel,
             FLMRPretrainedModelForRetrieval,
+            FLMRTextModel,
+            FLMRVisionModel,
         )
 
 else:

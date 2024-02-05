@@ -5,15 +5,17 @@ This file contains utility functions for the FLMR model. Some of these functions
 import torch
 import torch.distributed as dist
 
+
 def get_rank():
     return dist.get_rank()
+
 
 def get_world_size():
     return dist.get_world_size()
 
+
 def get_default_group():
     return dist.group.WORLD
-
 
 
 # TODO: The masking below might also be applicable in the kNN part
@@ -27,13 +29,14 @@ def colbert_score_reduce(scores_padded, D_mask):
 
     return scores.sum(-1)
 
+
 def colbert_score(Q, D_padded, D_mask, use_gpu=False):
     """
-        Supply sizes Q = (1 | num_docs, *, dim) and D = (num_docs, *, dim).
-        If Q.size(0) is 1, the matrix will be compared with all passages.
-        Otherwise, each query matrix will be compared against the *aligned* passage.
+    Supply sizes Q = (1 | num_docs, *, dim) and D = (num_docs, *, dim).
+    If Q.size(0) is 1, the matrix will be compared with all passages.
+    Otherwise, each query matrix will be compared against the *aligned* passage.
 
-        EVENTUALLY: Consider masking with -inf for the maxsim (or enforcing a ReLU).
+    EVENTUALLY: Consider masking with -inf for the maxsim (or enforcing a ReLU).
     """
     if use_gpu:
         Q, D_padded, D_mask = Q.cuda(), D_padded.cuda(), D_mask.cuda()
@@ -45,13 +48,14 @@ def colbert_score(Q, D_padded, D_mask, use_gpu=False):
 
     return colbert_score_reduce(scores, D_mask)
 
+
 def _sort_by_length(ids, mask, bsize, *args):
     if ids.size(0) <= bsize:
         return ids, mask, torch.arange(ids.size(0))
 
     indices = mask.sum(-1).sort().indices
     reverse_indices = indices.sort().indices
-    
+
     return_array = [ids[indices], mask[indices]]
     for arg in args:
         if isinstance(arg, torch.Tensor):
@@ -66,8 +70,8 @@ def _sort_by_length(ids, mask, bsize, *args):
 def _split_into_batches(ids, mask, bsize, *args):
     batches = []
     for offset in range(0, ids.size(0), bsize):
-        batch = [ids[offset:offset+bsize], mask[offset:offset+bsize]]
+        batch = [ids[offset : offset + bsize], mask[offset : offset + bsize]]
         for arg in args:
-            batch.append(arg[offset:offset+bsize])
+            batch.append(arg[offset : offset + bsize])
         batches.append(batch)
     return batches

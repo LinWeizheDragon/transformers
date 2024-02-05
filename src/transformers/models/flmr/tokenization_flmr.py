@@ -15,15 +15,11 @@
 """Tokenization classes for FLMR."""
 
 
-import collections
 from typing import List, Optional, Union
 
-from ...tokenization_utils_base import BatchEncoding
-from ...utils import TensorType, add_end_docstrings, add_start_docstrings, logging
+from ...utils import TensorType, logging
 from ..bert.tokenization_bert import BertTokenizer
 
-import torch
-from .flmr_utils import _split_into_batches, _sort_by_length
 
 logger = logging.get_logger(__name__)
 
@@ -34,9 +30,7 @@ CONTEXT_ENCODER_PRETRAINED_VOCAB_FILES_MAP = {
         "BByrneLab/PreFLMR_ViT-G": (
             "https://huggingface.co/BByrneLab/PreFLMR_ViT-G/resolve/main/context_tokenizer/vocab.txt"
         ),
-        "BByrneLab/FLMR": (
-            "https://huggingface.co/BByrneLab/FLMR/resolve/main/context_tokenizer/vocab.txt"
-        ),
+        "BByrneLab/FLMR": ("https://huggingface.co/BByrneLab/FLMR/resolve/main/context_tokenizer/vocab.txt"),
     },
     "tokenizer_file": {
         "BByrneLab/PreFLMR_ViT-G": (
@@ -52,17 +46,13 @@ QUESTION_ENCODER_PRETRAINED_VOCAB_FILES_MAP = {
         "BByrneLab/PreFLMR_ViT-G": (
             "https://huggingface.co/BByrneLab/PreFLMR_ViT-G/resolve/main/query_tokenizer/vocab.txt"
         ),
-        "BByrneLab/FLMR": (
-            "https://huggingface.co/BByrneLab/FLMR/resolve/main/query_tokenizer/vocab.txt"
-        ),
+        "BByrneLab/FLMR": ("https://huggingface.co/BByrneLab/FLMR/resolve/main/query_tokenizer/vocab.txt"),
     },
     "tokenizer_file": {
         "BByrneLab/PreFLMR_ViT-G": (
             "https://huggingface.co/BByrneLab/PreFLMR_ViT-G/resolve/main/query_tokenizer/tokenizer_config.json"
         ),
-        "BByrneLab/FLMR": (
-            "https://huggingface.co/BByrneLab/FLMR/resolve/main/query_tokenizer/tokenizer_config.json"
-        ),
+        "BByrneLab/FLMR": ("https://huggingface.co/BByrneLab/FLMR/resolve/main/query_tokenizer/tokenizer_config.json"),
     },
 }
 
@@ -85,6 +75,7 @@ QUESTION_ENCODER_PRETRAINED_INIT_CONFIGURATION = {
     "BByrneLab/PreFLMR_ViT-G": {"do_lower_case": True},
     "BByrneLab/FLMR": {"do_lower_case": True},
 }
+
 
 # Copied and modified from colbert.modeling.tokenization
 class FLMRContextEncoderTokenizer(BertTokenizer):
@@ -113,33 +104,34 @@ class FLMRContextEncoderTokenizer(BertTokenizer):
         )
 
         self.doc_maxlen = doc_maxlen
-        self.D_marker_token, self.D_marker_token_id = '[D]', self.convert_tokens_to_ids('[unused1]')
-    
-    def __call__(
-            self, 
-            text: List[str], 
-            padding: Optional[Union[str, bool]] = 'max_length', 
-            truncation: Optional[Union[bool, str]]='longest_first',
-            max_length: Optional[int] = 512,
-            return_tensors: Optional[Union[str, TensorType]] = 'pt',
-            **kwargs
-        ):
+        self.D_marker_token, self.D_marker_token_id = "[D]", self.convert_tokens_to_ids("[unused1]")
 
+    def __call__(
+        self,
+        text: List[str],
+        padding: Optional[Union[str, bool]] = "max_length",
+        truncation: Optional[Union[bool, str]] = "longest_first",
+        max_length: Optional[int] = 512,
+        return_tensors: Optional[Union[str, TensorType]] = "pt",
+        **kwargs,
+    ):
         # add placehold for the [D] marker
-        text = ['. ' + x for x in text]
+        text = [". " + x for x in text]
 
         if max_length > self.doc_maxlen:
             # can not exceed the pre-set length
             max_length = self.doc_maxlen
 
-        encoding = super().__call__(text, 
-                                    padding=padding, 
-                                    truncation=truncation,
-                                    return_tensors=return_tensors, 
-                                    max_length=max_length, 
-                                    **kwargs)
+        encoding = super().__call__(
+            text,
+            padding=padding,
+            truncation=truncation,
+            return_tensors=return_tensors,
+            max_length=max_length,
+            **kwargs,
+        )
 
-        ids, mask = encoding['input_ids'], encoding['attention_mask']
+        ids, mask = encoding["input_ids"], encoding["attention_mask"]
 
         # postprocess for the [D] marker
         ids[:, 1] = self.D_marker_token_id
@@ -152,7 +144,7 @@ class FLMRContextEncoderTokenizer(BertTokenizer):
         #     else:
         #         ids, mask, reverse_indices = _sort_by_length(ids, mask, bsize)
         #         batches = _split_into_batches(ids, mask, bsize)
-            
+
         #     return batches, reverse_indices
 
         encoding["input_ids"] = ids
@@ -195,26 +187,23 @@ class FLMRQueryEncoderTokenizer(BertTokenizer):
         self.background_maxlen = 512 - self.query_maxlen + 1  # FIXME: Make this configurable
         self.attend_to_mask_tokens = attend_to_mask_tokens
 
-        self.Q_marker_token, self.Q_marker_token_id = '[Q]', self.convert_tokens_to_ids('[unused0]')
+        self.Q_marker_token, self.Q_marker_token_id = "[Q]", self.convert_tokens_to_ids("[unused0]")
 
-
-    
     def __call__(
-            self, 
-            text: Union[str, List[str]], 
-            padding: Optional[Union[str, bool]] = 'max_length', 
-            truncation: Optional[Union[bool, str]] = True,
-            max_length: Optional[int] = None,
-            return_tensors: Optional[Union[str, TensorType]] = 'pt',
-            **kwargs
-        ):
-        
+        self,
+        text: Union[str, List[str]],
+        padding: Optional[Union[str, bool]] = "max_length",
+        truncation: Optional[Union[bool, str]] = True,
+        max_length: Optional[int] = None,
+        return_tensors: Optional[Union[str, TensorType]] = "pt",
+        **kwargs,
+    ):
         if isinstance(text, str):
             # convert to list if input is a single string
             text = [text]
-        
+
         # add placehold for the [Q] marker
-        text = ['. ' + x for x in text]
+        text = [". " + x for x in text]
 
         if max_length is not None:
             # use user specified max_length
@@ -223,23 +212,24 @@ class FLMRQueryEncoderTokenizer(BertTokenizer):
             # use default max length
             max_length = self.query_maxlen
 
-        encoding = super().__call__(text, 
-                                    padding=padding, 
-                                    truncation=truncation,
-                                    return_tensors=return_tensors, 
-                                    max_length=max_length, 
-                                    **kwargs)
+        encoding = super().__call__(
+            text,
+            padding=padding,
+            truncation=truncation,
+            return_tensors=return_tensors,
+            max_length=max_length,
+            **kwargs,
+        )
 
-        ids, mask = encoding['input_ids'], encoding['attention_mask']
+        ids, mask = encoding["input_ids"], encoding["attention_mask"]
 
         # postprocess for the [Q] marker and the [MASK] augmentation
         ids[:, 1] = self.Q_marker_token_id
         ids[ids == self.pad_token_id] = self.mask_token_id
-        
+
         if self.attend_to_mask_tokens:
             # When attend_to_mask_tokens is True, we want to attend to the [MASK] tokens
             mask[ids == self.mask_token_id] = 1
             assert mask.sum().item() == mask.size(0) * mask.size(1), mask
-        
-        return {'input_ids': ids, 'attention_mask': mask}
 
+        return {"input_ids": ids, "attention_mask": mask}

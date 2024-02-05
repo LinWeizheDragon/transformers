@@ -15,11 +15,7 @@
 """Tokenization classes for FLMR."""
 
 
-import collections
-from typing import List, Optional, Union
-
-from ...tokenization_utils_base import BatchEncoding
-from ...utils import TensorType, add_end_docstrings, add_start_docstrings, logging
+from ...utils import logging
 from ..bert.tokenization_bert_fast import BertTokenizerFast
 from .tokenization_flmr import FLMRContextEncoderTokenizer, FLMRQueryEncoderTokenizer
 
@@ -33,9 +29,7 @@ CONTEXT_ENCODER_PRETRAINED_VOCAB_FILES_MAP = {
         "BByrneLab/PreFLMR_ViT-G": (
             "https://huggingface.co/BByrneLab/PreFLMR_ViT-G/resolve/main/context_tokenizer/vocab.txt"
         ),
-        "BByrneLab/FLMR": (
-            "https://huggingface.co/BByrneLab/FLMR/resolve/main/context_tokenizer/vocab.txt"
-        ),
+        "BByrneLab/FLMR": ("https://huggingface.co/BByrneLab/FLMR/resolve/main/context_tokenizer/vocab.txt"),
     },
     "tokenizer_file": {
         "BByrneLab/PreFLMR_ViT-G": (
@@ -51,17 +45,13 @@ QUESTION_ENCODER_PRETRAINED_VOCAB_FILES_MAP = {
         "BByrneLab/PreFLMR_ViT-G": (
             "https://huggingface.co/BByrneLab/PreFLMR_ViT-G/resolve/main/query_tokenizer/vocab.txt"
         ),
-        "BByrneLab/FLMR": (
-            "https://huggingface.co/BByrneLab/FLMR/resolve/main/query_tokenizer/vocab.txt"
-        ),
+        "BByrneLab/FLMR": ("https://huggingface.co/BByrneLab/FLMR/resolve/main/query_tokenizer/vocab.txt"),
     },
     "tokenizer_file": {
         "BByrneLab/PreFLMR_ViT-G": (
             "https://huggingface.co/BByrneLab/PreFLMR_ViT-G/resolve/main/query_tokenizer/tokenizer_config.json"
         ),
-        "BByrneLab/FLMR": (
-            "https://huggingface.co/BByrneLab/FLMR/resolve/main/query_tokenizer/tokenizer_config.json"
-        ),
+        "BByrneLab/FLMR": ("https://huggingface.co/BByrneLab/FLMR/resolve/main/query_tokenizer/tokenizer_config.json"),
     },
 }
 

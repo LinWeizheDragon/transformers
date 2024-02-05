@@ -13,33 +13,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 import os
+import tempfile
+import unittest
 
 from transformers import (
     FLMRContextEncoderTokenizer,
     FLMRContextEncoderTokenizerFast,
     FLMRQueryEncoderTokenizer,
     FLMRQueryEncoderTokenizerFast,
+    is_torch_available,
 )
-from transformers.testing_utils import require_tokenizers, slow
-from transformers.testing_utils import require_torch
+from transformers.testing_utils import require_tokenizers
 
-from transformers.tokenization_utils_base import BatchEncoding
 
-from transformers.testing_utils import require_tokenizers, slow
-
-from ...test_tokenization_common import TokenizerTesterMixin, filter_non_english
-import tempfile
-
-from transformers import is_torch_available
 if is_torch_available():
-    import torch
+    pass
 
 VOCAB_FILES_NAMES = {"vocab_file": "vocab.txt", "tokenizer_file": "tokenizer_config.json"}
 
+
 @require_tokenizers
-class FLMRContextEncoderTokenizationTest():
+class FLMRContextEncoderTokenizationTest:
     tokenizer_class = FLMRContextEncoderTokenizer
     rust_tokenizer_class = FLMRContextEncoderTokenizerFast
     test_rust_tokenizer = True
@@ -63,20 +58,20 @@ class FLMRContextEncoderTokenizationTest():
             ",",
             "low",
             "lowest",
-            "[unused0]", # Added for ColBERT Q Marker
-            "[unused1]", # Added for ColBERT D Marker
+            "[unused0]",  # Added for ColBERT Q Marker
+            "[unused1]",  # Added for ColBERT D Marker
         ]
         # Create a temp folder to store the vocab using a package
-        self.tmpdir =  tempfile.TemporaryDirectory()
+        self.tmpdir = tempfile.TemporaryDirectory()
         self.tmpdirname = self.tmpdir.name
         self.vocab_file = os.path.join(self.tmpdirname, VOCAB_FILES_NAMES["vocab_file"])
         with open(self.vocab_file, "w", encoding="utf-8") as vocab_writer:
             vocab_writer.write("".join([x + "\n" for x in vocab_tokens]))
 
     def test_full_tokenizer(
-            self,
-            doc_maxlen=32,
-        ):
+        self,
+        doc_maxlen=32,
+    ):
         tokenizer = self.tokenizer_class(self.vocab_file, doc_maxlen=doc_maxlen)
 
         tokens = tokenizer.tokenize("UNwant\u00E9d,running")
@@ -86,17 +81,33 @@ class FLMRContextEncoderTokenizationTest():
         test_sentences = ["UNwant\u00E9d,running", "UNwant\u00E9d,running"]
         encoded = tokenizer(test_sentences)
         encoded = dict(**encoded)
-        encoded['input_ids'] = encoded['input_ids'].tolist()
-        encoded['attention_mask'] = encoded['attention_mask'].tolist()
-        expected_encoding = {'input_ids': [[1, 16, 9, 6, 7, 12, 10, 11, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4], [1, 15, 9, 6, 7, 12, 10, 11, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]], 'attention_mask': [[1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]}
+        encoded["input_ids"] = encoded["input_ids"].tolist()
+        encoded["attention_mask"] = encoded["attention_mask"].tolist()
+        expected_encoding = {
+            "input_ids": [
+                [1, 16, 9, 6, 7, 12, 10, 11, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+                [1, 15, 9, 6, 7, 12, 10, 11, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+            ],
+            "attention_mask": [
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            ],
+        }
 
         # Test if one sentence can be converted to a list
         test_sentences = "UNwant\u00E9d,running"
         encoded = tokenizer(test_sentences)
         encoded = dict(**encoded)
-        encoded['input_ids'] = encoded['input_ids'].tolist()
-        encoded['attention_mask'] = encoded['attention_mask'].tolist()
-        expected_encoding = {'input_ids': [[1, 16, 9, 6, 7, 12, 10, 11, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]], 'attention_mask': [[1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]}
+        encoded["input_ids"] = encoded["input_ids"].tolist()
+        encoded["attention_mask"] = encoded["attention_mask"].tolist()
+        expected_encoding = {
+            "input_ids": [
+                [1, 16, 9, 6, 7, 12, 10, 11, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+            ],
+            "attention_mask": [
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            ],
+        }
         self.assertDictEqual(encoded, expected_encoding)
 
     def get_tokenizer(self, *args, **kwargs):
@@ -104,7 +115,7 @@ class FLMRContextEncoderTokenizationTest():
 
     def get_rust_tokenizer(self, *args, **kwargs):
         return self.rust_tokenizer_class(self.vocab_file, *args, **kwargs)
-    
+
     def test_rust_and_python_full_tokenizers(self):
         if not self.test_rust_tokenizer:
             return
@@ -151,9 +162,12 @@ class FLMRContextEncoderTokenizationTest():
         test_sentences = "UNwant\u00E9d,running"
         encoded = tokenizer(test_sentences)
         encoded = dict(**encoded)
-        encoded['input_ids'] = encoded['input_ids'].tolist()
-        encoded['attention_mask'] = encoded['attention_mask'].tolist()
-        expected_encoding = {'input_ids': [[1, 16, 9, 6, 7, 12, 10, 11, 2, 4, 4, 4, 4, 4, 4, 4]], 'attention_mask': [[1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0]]}
+        encoded["input_ids"] = encoded["input_ids"].tolist()
+        encoded["attention_mask"] = encoded["attention_mask"].tolist()
+        expected_encoding = {
+            "input_ids": [[1, 16, 9, 6, 7, 12, 10, 11, 2, 4, 4, 4, 4, 4, 4, 4]],
+            "attention_mask": [[1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0]],
+        }
         self.assertDictEqual(encoded, expected_encoding)
 
     def test_doc_maxlen_truncated(self, doc_maxlen=4):
@@ -161,12 +175,13 @@ class FLMRContextEncoderTokenizationTest():
         test_sentences = "UNwant\u00E9d,running"
         encoded = tokenizer(test_sentences)
         encoded = dict(**encoded)
-        encoded['input_ids'] = encoded['input_ids'].tolist()
-        encoded['attention_mask'] = encoded['attention_mask'].tolist()
+        encoded["input_ids"] = encoded["input_ids"].tolist()
+        encoded["attention_mask"] = encoded["attention_mask"].tolist()
         print(encoded)
         # Now [MASK] tokens are attended
-        expected_encoding = {'input_ids': [[1, 16, 9, 2]], 'attention_mask': [[1, 1, 1, 1]]}
+        expected_encoding = {"input_ids": [[1, 16, 9, 2]], "attention_mask": [[1, 1, 1, 1]]}
         self.assertDictEqual(encoded, expected_encoding)
+
 
 # Copied and modified from ..bert.test_tokenization_bert.BertTokenizationTest
 @require_tokenizers
@@ -194,20 +209,20 @@ class FLMRQueryEncoderTokenizationTest(unittest.TestCase):
             ",",
             "low",
             "lowest",
-            "[unused0]", # Added for ColBERT Q Marker
-            "[unused1]", # Added for ColBERT D Marker
+            "[unused0]",  # Added for ColBERT Q Marker
+            "[unused1]",  # Added for ColBERT D Marker
         ]
         # Create a temp folder to store the vocab using a package
-        self.tmpdir =  tempfile.TemporaryDirectory()
+        self.tmpdir = tempfile.TemporaryDirectory()
         self.tmpdirname = self.tmpdir.name
         self.vocab_file = os.path.join(self.tmpdirname, VOCAB_FILES_NAMES["vocab_file"])
         with open(self.vocab_file, "w", encoding="utf-8") as vocab_writer:
             vocab_writer.write("".join([x + "\n" for x in vocab_tokens]))
 
     def test_full_tokenizer(
-            self,
-            query_maxlen=32,
-        ):
+        self,
+        query_maxlen=32,
+    ):
         tokenizer = self.tokenizer_class(self.vocab_file, query_maxlen=query_maxlen)
 
         tokens = tokenizer.tokenize("UNwant\u00E9d,running")
@@ -217,17 +232,33 @@ class FLMRQueryEncoderTokenizationTest(unittest.TestCase):
         test_sentences = ["UNwant\u00E9d,running", "UNwant\u00E9d,running"]
         encoded = tokenizer(test_sentences)
         encoded = dict(**encoded)
-        encoded['input_ids'] = encoded['input_ids'].tolist()
-        encoded['attention_mask'] = encoded['attention_mask'].tolist()
-        expected_encoding = {'input_ids': [[1, 15, 9, 6, 7, 12, 10, 11, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4], [1, 15, 9, 6, 7, 12, 10, 11, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]], 'attention_mask': [[1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]}
+        encoded["input_ids"] = encoded["input_ids"].tolist()
+        encoded["attention_mask"] = encoded["attention_mask"].tolist()
+        expected_encoding = {
+            "input_ids": [
+                [1, 15, 9, 6, 7, 12, 10, 11, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+                [1, 15, 9, 6, 7, 12, 10, 11, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+            ],
+            "attention_mask": [
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            ],
+        }
 
         # Test if one sentence can be converted to a list
         test_sentences = "UNwant\u00E9d,running"
         encoded = tokenizer(test_sentences)
         encoded = dict(**encoded)
-        encoded['input_ids'] = encoded['input_ids'].tolist()
-        encoded['attention_mask'] = encoded['attention_mask'].tolist()
-        expected_encoding = {'input_ids': [[1, 15, 9, 6, 7, 12, 10, 11, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]], 'attention_mask': [[1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]}
+        encoded["input_ids"] = encoded["input_ids"].tolist()
+        encoded["attention_mask"] = encoded["attention_mask"].tolist()
+        expected_encoding = {
+            "input_ids": [
+                [1, 15, 9, 6, 7, 12, 10, 11, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+            ],
+            "attention_mask": [
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            ],
+        }
         self.assertDictEqual(encoded, expected_encoding)
 
     def get_tokenizer(self, *args, **kwargs):
@@ -235,7 +266,7 @@ class FLMRQueryEncoderTokenizationTest(unittest.TestCase):
 
     def get_rust_tokenizer(self, *args, **kwargs):
         return self.rust_tokenizer_class(self.vocab_file, *args, **kwargs)
-    
+
     def test_rust_and_python_full_tokenizers(self):
         if not self.test_rust_tokenizer:
             return
@@ -282,10 +313,17 @@ class FLMRQueryEncoderTokenizationTest(unittest.TestCase):
         test_sentences = "UNwant\u00E9d,running"
         encoded = tokenizer(test_sentences)
         encoded = dict(**encoded)
-        encoded['input_ids'] = encoded['input_ids'].tolist()
-        encoded['attention_mask'] = encoded['attention_mask'].tolist()
+        encoded["input_ids"] = encoded["input_ids"].tolist()
+        encoded["attention_mask"] = encoded["attention_mask"].tolist()
         # Now [MASK] tokens are attended
-        expected_encoding = {'input_ids': [[1, 15, 9, 6, 7, 12, 10, 11, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]], 'attention_mask': [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]}
+        expected_encoding = {
+            "input_ids": [
+                [1, 15, 9, 6, 7, 12, 10, 11, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+            ],
+            "attention_mask": [
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+            ],
+        }
         self.assertDictEqual(encoded, expected_encoding)
 
     def test_query_maxlen(self, query_maxlen=16):
@@ -293,9 +331,12 @@ class FLMRQueryEncoderTokenizationTest(unittest.TestCase):
         test_sentences = "UNwant\u00E9d,running"
         encoded = tokenizer(test_sentences)
         encoded = dict(**encoded)
-        encoded['input_ids'] = encoded['input_ids'].tolist()
-        encoded['attention_mask'] = encoded['attention_mask'].tolist()
-        expected_encoding = {'input_ids': [[1, 15, 9, 6, 7, 12, 10, 11, 2, 4, 4, 4, 4, 4, 4, 4]], 'attention_mask': [[1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0]]}
+        encoded["input_ids"] = encoded["input_ids"].tolist()
+        encoded["attention_mask"] = encoded["attention_mask"].tolist()
+        expected_encoding = {
+            "input_ids": [[1, 15, 9, 6, 7, 12, 10, 11, 2, 4, 4, 4, 4, 4, 4, 4]],
+            "attention_mask": [[1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0]],
+        }
         self.assertDictEqual(encoded, expected_encoding)
 
     def test_query_maxlen_truncated(self, query_maxlen=4):
@@ -303,7 +344,7 @@ class FLMRQueryEncoderTokenizationTest(unittest.TestCase):
         test_sentences = "UNwant\u00E9d,running"
         encoded = tokenizer(test_sentences)
         encoded = dict(**encoded)
-        encoded['input_ids'] = encoded['input_ids'].tolist()
-        encoded['attention_mask'] = encoded['attention_mask'].tolist()
-        expected_encoding = {'input_ids': [[1, 15, 9, 2]], 'attention_mask': [[1, 1, 1, 1]]}
+        encoded["input_ids"] = encoded["input_ids"].tolist()
+        encoded["attention_mask"] = encoded["attention_mask"].tolist()
+        expected_encoding = {"input_ids": [[1, 15, 9, 2]], "attention_mask": [[1, 1, 1, 1]]}
         self.assertDictEqual(encoded, expected_encoding)

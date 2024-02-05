@@ -19,14 +19,18 @@ from pathlib import Path
 import torch
 from torch.serialization import default_restore_location
 
-from transformers import FLMRQueryEncoderTokenizer, FLMRContextEncoderTokenizer
-from transformers import FLMRConfig, FLMRVisionConfig, FLMRTextConfig
-from transformers import FLMRModelForRetrieval
-
-list_of_keys_to_load = ['epoch', 'global_step', 'state_dict', 'optimizer_states']
-CheckpointState = collections.namedtuple(
-    "CheckpointState", list_of_keys_to_load
+from transformers import (
+    FLMRConfig,
+    FLMRContextEncoderTokenizer,
+    FLMRModelForRetrieval,
+    FLMRQueryEncoderTokenizer,
+    FLMRTextConfig,
+    FLMRVisionConfig,
 )
+
+
+list_of_keys_to_load = ["epoch", "global_step", "state_dict", "optimizer_states"]
+CheckpointState = collections.namedtuple("CheckpointState", list_of_keys_to_load)
 
 
 def load_states_from_checkpoint(model_file: str) -> CheckpointState:
@@ -64,9 +68,9 @@ class FLMRModelForRetrievalState(FLMRState):
         context_tokenizer.add_special_tokens({"additional_special_tokens": special_tokens_to_add})
         text_config = FLMRTextConfig.from_pretrained("bert-base-uncased")
         vision_config = FLMRVisionConfig.from_pretrained(self.vision_model_version)
-        
+
         flmr_config = FLMRConfig.from_text_vision_configs(
-            text_config=text_config, 
+            text_config=text_config,
             vision_config=vision_config,
             query_concat_output_from_vision_encoder=True,
             query_concat_output_from_text_encoder=True,
@@ -75,11 +79,9 @@ class FLMRModelForRetrievalState(FLMRState):
             vision_model_version=self.vision_model_version,
         )
 
-        
-        model = FLMRModelForRetrieval(config=flmr_config, 
-                                        query_tokenizer=query_tokenizer, 
-                                        context_tokenizer=context_tokenizer
-                                        )
+        model = FLMRModelForRetrieval(
+            config=flmr_config, query_tokenizer=query_tokenizer, context_tokenizer=context_tokenizer
+        )
 
         print(f"Loading FLMR biencoder from {self.src_file}")
         saved_state = load_states_from_checkpoint(self.src_file)
@@ -88,10 +90,11 @@ class FLMRModelForRetrievalState(FLMRState):
         # state_dict = {"context_text_encoder.bert_model.embeddings.position_ids": model.context_text_encoder.bert_model.embeddings.position_ids}
         state_dict = {}
         from pprint import pprint
+
         # pprint(model.state_dict().keys())
         # print("=================================")
         for key, value in saved_state.state_dict.items():
-            # if key in ['model.vision_projection.model.0.weight', 
+            # if key in ['model.vision_projection.model.0.weight',
             #            'model.model.linear.weight',
             #            'model.model.bert.encoder.layer.0.attention.self.query.weight']:
             #     print(key, value[0])
@@ -102,7 +105,7 @@ class FLMRModelForRetrievalState(FLMRState):
                 new_key = key.replace("model.model.linear.", "context_text_encoder_linear.")
             elif key.startswith("model.vision_projection."):
                 new_key = key.replace("model.vision_projection.", "context_vision_projection.")
-            
+
             if new_key.startswith("context_text_encoder.bert_model.embeddings.position_ids"):
                 # This is to fix the bug that came with a recent update in Huggingface
                 # position_ids are no longer used in the model, and thus we need to ignore it from the checkpoint that was trained using an older version of Huggingface.
@@ -113,19 +116,20 @@ class FLMRModelForRetrievalState(FLMRState):
                 print(value.shape)
                 vocab_size = value.shape[0]
                 model.context_text_encoder.bert_model.resize_token_embeddings(vocab_size)
-            
+
             state_dict[new_key] = value
-        
+
         if model.config.use_vision_encoder:
             # Need to load vision model parameters into the checkpoint
             from transformers import CLIPVisionModel
+
             vision_model = CLIPVisionModel.from_pretrained(model.config.vision_model_version)
 
             vision_model_state_dict = vision_model.state_dict()
             for key, value in vision_model_state_dict.items():
                 new_key = "context_vision_encoder.vision_model." + key
                 state_dict[new_key] = value
-        
+
         if not model.config.separate_query_and_context_text_encoder:
             # Need to copy the context_text_encoder parameters to query_text_encoder
             temp_state_dict = {}
@@ -133,9 +137,9 @@ class FLMRModelForRetrievalState(FLMRState):
                 if key.startswith("context_text_encoder"):
                     new_key = key.replace("context_text_encoder", "query_text_encoder")
                     temp_state_dict[new_key] = value
-                
+
             state_dict.update(temp_state_dict)
-        
+
         if not model.config.separate_query_and_context_vision_encoder:
             # Need to copy the context_vision_encoder parameters to query_vision_encoder
             temp_state_dict = {}
@@ -146,10 +150,9 @@ class FLMRModelForRetrievalState(FLMRState):
                 if key.startswith("context_vision_projection"):
                     new_key = key.replace("context_vision_projection", "query_vision_projection")
                     temp_state_dict[new_key] = value
-                
+
             state_dict.update(temp_state_dict)
 
-        
         # Compare the keys in state_dict, and the keys in model.state_dict()
         # Report parameters in state_dict but not in model.state_dict()
         missing_keys = []
@@ -174,7 +177,6 @@ class FLMRModelForRetrievalState(FLMRState):
         return model
 
 
-
 class PreFLMRModelForRetrievalState(FLMRState):
     def load_flmr_model(self, **kwargs):
         query_tokenizer = FLMRQueryEncoderTokenizer.from_pretrained("bert-base-uncased")
@@ -182,9 +184,9 @@ class PreFLMRModelForRetrievalState(FLMRState):
 
         text_config = FLMRTextConfig.from_pretrained("bert-base-uncased")
         vision_config = FLMRVisionConfig.from_pretrained(self.vision_model_version)
-        
+
         flmr_config = FLMRConfig.from_text_vision_configs(
-            text_config=text_config, 
+            text_config=text_config,
             vision_config=vision_config,
             query_concat_output_from_vision_encoder=True,
             query_concat_output_from_text_encoder=True,
@@ -198,12 +200,10 @@ class PreFLMRModelForRetrievalState(FLMRState):
             vision_model_version=self.vision_model_version,
         )
 
-        
-        model = FLMRModelForRetrieval(config=flmr_config, 
-                                        query_tokenizer=query_tokenizer, 
-                                        context_tokenizer=context_tokenizer
-                                        )
-        
+        model = FLMRModelForRetrieval(
+            config=flmr_config, query_tokenizer=query_tokenizer, context_tokenizer=context_tokenizer
+        )
+
         print(f"Loading PreFLMR biencoder from {self.src_file}")
         saved_state = load_states_from_checkpoint(self.src_file)
 
@@ -211,12 +211,12 @@ class PreFLMRModelForRetrievalState(FLMRState):
         # state_dict = {"context_text_encoder.bert_model.embeddings.position_ids": model.context_text_encoder.bert_model.embeddings.position_ids}
         state_dict = {}
         from pprint import pprint
+
         # pprint(list(model.state_dict().keys()))
         # print("=================================")
         # pprint(list(saved_state.state_dict.keys()))
         # input()
         for key, value in saved_state.state_dict.items():
-
             if key.startswith("model.model.bert"):
                 new_key = key.replace("model.model.bert.", "context_text_encoder.bert_model.")
             elif key.startswith("model.model.linear."):
@@ -237,7 +237,7 @@ class PreFLMRModelForRetrievalState(FLMRState):
                 new_key = key.replace("model.query_linear.", "query_text_encoder_linear.")
             else:
                 new_key = key
-            
+
             if new_key.startswith("context_text_encoder.bert_model.embeddings.position_ids"):
                 # This is to fix the bug that came with a recent update in Huggingface
                 # position_ids are no longer used in the model, and thus we need to ignore it from the checkpoint that was trained using an older version of Huggingface.
@@ -248,21 +248,21 @@ class PreFLMRModelForRetrievalState(FLMRState):
                 print(value.shape)
                 vocab_size = value.shape[0]
                 model.context_text_encoder.bert_model.resize_token_embeddings(vocab_size)
-            
-            
+
             # print(f"{key}\t -> \t{new_key} \t {value.shape}")
             state_dict[new_key] = value
-        
+
         if model.config.use_vision_encoder:
             # Need to load vision model parameters into the checkpoint
             from transformers import CLIPVisionModel
+
             vision_model = CLIPVisionModel.from_pretrained(self.vision_model_version)
 
             vision_model_state_dict = vision_model.state_dict()
             for key, value in vision_model_state_dict.items():
                 new_key = "context_vision_encoder.vision_model." + key
                 state_dict[new_key] = value
-        
+
         if not model.config.separate_query_and_context_text_encoder:
             print("Copying context_text_encoder parameters to query_text_encoder")
             # Need to copy the context_text_encoder parameters to query_text_encoder
@@ -271,9 +271,9 @@ class PreFLMRModelForRetrievalState(FLMRState):
                 if key.startswith("context_text_encoder"):
                     new_key = key.replace("context_text_encoder", "query_text_encoder")
                     temp_state_dict[new_key] = value
-                
+
             state_dict.update(temp_state_dict)
-        
+
         if not model.config.separate_query_and_context_vision_encoder:
             print("Copying context_vision_encoder parameters to query_vision_encoder")
             # Need to copy the context_vision_encoder parameters to query_vision_encoder
@@ -285,10 +285,9 @@ class PreFLMRModelForRetrievalState(FLMRState):
                 if key.startswith("context_vision_projection"):
                     new_key = key.replace("context_vision_projection", "query_vision_projection")
                     temp_state_dict[new_key] = value
-                
+
             state_dict.update(temp_state_dict)
-        
-        
+
         # Compare the keys in state_dict, and the keys in model.state_dict()
         # Report parameters in state_dict but not in model.state_dict()
         missing_keys = []
@@ -308,7 +307,7 @@ class PreFLMRModelForRetrievalState(FLMRState):
         print("Keys in the model but not in the checkpoint:")
         pprint(extra_keys)
         print("=================================")
-        
+
         model.load_state_dict(state_dict)
         return model
 
@@ -325,18 +324,19 @@ def convert(args, src_file: Path, dest_dir: Path):
 
     query_tokenizer = FLMRQueryEncoderTokenizer.from_pretrained(dest_dir / "query_tokenizer")
     context_tokenizer = FLMRContextEncoderTokenizer.from_pretrained(dest_dir / "context_tokenizer")
-    model = model.from_pretrained(dest_dir, query_tokenizer=query_tokenizer, context_tokenizer=context_tokenizer)  # sanity check
+    model = model.from_pretrained(
+        dest_dir, query_tokenizer=query_tokenizer, context_tokenizer=context_tokenizer
+    )  # sanity check
     # print parameters
     # for name, param in model.named_parameters():
     #     if name in ["context_vision_encoder.vision_model.encoder.layers.0.self_attn.k_proj.weight", "context_vision_projection.model.0.weight", "context_text_encoder_linear.weight", "context_text_encoder.bert_model.encoder.layer.0.attention.self.query.weight"]:
     #         print(name, param[0])
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # Required parameters
-    parser.add_argument(
-        "--type", type=str, help="Type of the FLMR model: 'FLMR' or 'PreFLMR'."
-    )
+    parser.add_argument("--type", type=str, help="Type of the FLMR model: 'FLMR' or 'PreFLMR'.")
     parser.add_argument(
         "--src",
         type=str,
@@ -346,14 +346,17 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument("--dest", type=str, default=None, help="Path to the output PyTorch model directory.")
-    parser.add_argument("--vision_model_version", type=str, default="openai/clip-vit-base-patch32", help="Version of the CLIP vision model to use.")
+    parser.add_argument(
+        "--vision_model_version",
+        type=str,
+        default="openai/clip-vit-base-patch32",
+        help="Version of the CLIP vision model to use.",
+    )
     args = parser.parse_args()
 
     src_file = Path(args.src)
     dest_dir = f"converted-{src_file.name}" if args.dest is None else args.dest
     dest_dir = Path(dest_dir)
     assert src_file.exists()
-    assert (
-        args.type is not None
-    ), "Please specify the type of the FLMR model to convert: 'FLMR' or 'PreFLMR'."
+    assert args.type is not None, "Please specify the type of the FLMR model to convert: 'FLMR' or 'PreFLMR'."
     convert(args, src_file, dest_dir)
