@@ -79,6 +79,24 @@ class FLMRContextEncoderOutput(ModelOutput):
             This output is to be used to embed contexts for late-interaction retrieval with query embeddings.
         context_mask (`torch.FloatTensor` of shape `(batch_size, context_embedding_length)`):
             The FLMR encoder outputs the *context_mask* that corresponds to the mask of the context representation.
+        text_encoder_attentions (`Tuple[torch.FloatTensor]`, *optional*):
+            Tuple of elements containing the attention weights of the text encoder's layers. Each element is a
+            tensor of shape `(batch_size, num_heads, sequence_length, sequence_length)`.
+        text_encoder_hidden_states (`Tuple[torch.FloatTensor]`, *optional*):
+            Tuple of elements containing the hidden states of the text encoder at each layer plus the initial embedding
+            outputs. Each tensor has a shape of `(batch_size, sequence_length, hidden_size)`.
+        vision_encoder_attentions (`Tuple[torch.FloatTensor]`, *optional*):
+            Tuple of elements containing the attention weights of the vision encoder's layers. Each element is a
+            tensor of shape `(batch_size, num_heads, vision_sequence_length, vision_sequence_length)`.
+        vision_encoder_hidden_states (`Tuple[torch.FloatTensor]`, *optional*):
+            Tuple of elements containing the hidden states of the vision encoder at each layer plus the initial embedding
+            outputs. Each tensor has a shape of `(batch_size, vision_sequence_length, hidden_size)`.
+        transformer_mapping_network_attentions (`Tuple[torch.FloatTensor]`, *optional*):
+            Tuple of elements containing the attention weights of the transformer mapping network's layers. Each element
+            is a tensor of shape `(batch_size, num_heads, mapping_sequence_length, mapping_sequence_length)`.
+        transformer_mapping_network_hidden_states (`Tuple[torch.FloatTensor]`, *optional*):
+            Tuple of elements containing the hidden states of the transformer mapping network at each layer plus the
+            initial embedding outputs. Each tensor has a shape of `(batch_size, mapping_sequence_length, hidden_size)`.
     """
 
     pooler_output: torch.FloatTensor
@@ -104,12 +122,28 @@ class FLMRQueryEncoderOutput(ModelOutput):
         late_interaction_output (`torch.FloatTensor` of shape `(batch_size, query_embedding_length, embeddings_size)`):
             The FLMR encoder outputs the *late_interaction_output* that corresponds to the question representation. The embeddings of all tokens are included for late interaction retrieval.
             This output is to be used to embed questions for late-interaction retrieval with context embeddings.
+        text_encoder_attentions (`Tuple[torch.FloatTensor]`, *optional*):
+            Tuple of elements containing the attention weights of the text encoder's layers. Each element is a
+            tensor of shape `(batch_size, num_heads, sequence_length, sequence_length)`.
+        text_encoder_hidden_states (`Tuple[torch.FloatTensor]`, *optional*):
+            Tuple of elements containing the hidden states of the text encoder at each layer plus the initial embedding
+            outputs. Each tensor has a shape of `(batch_size, sequence_length, hidden_size)`.
+        vision_encoder_attentions (`Tuple[torch.FloatTensor]`, *optional*):
+            Tuple of elements containing the attention weights of the vision encoder's layers. Each element is a
+            tensor of shape `(batch_size, num_heads, vision_sequence_length, vision_sequence_length)`.
+        vision_encoder_hidden_states (`Tuple[torch.FloatTensor]`, *optional*):
+            Tuple of elements containing the hidden states of the vision encoder at each layer plus the initial embedding
+            outputs. Each tensor has a shape of `(batch_size, vision_sequence_length, hidden_size)`.
+        transformer_mapping_network_attentions (`Tuple[torch.FloatTensor]`, *optional*):
+            Tuple of elements containing the attention weights of the transformer mapping network's layers. Each element
+            is a tensor of shape `(batch_size, num_heads, mapping_sequence_length, mapping_sequence_length)`.
+        transformer_mapping_network_hidden_states (`Tuple[torch.FloatTensor]`, *optional*):
+            Tuple of elements containing the hidden states of the transformer mapping network at each layer plus the
+            initial embedding outputs. Each tensor has a shape of `(batch_size, mapping_sequence_length, hidden_size)`.
     """
 
     pooler_output: torch.FloatTensor
     late_interaction_output: torch.FloatTensor = None
-    attentions: Optional[Tuple[Tensor]] = None
-    hidden_states: Optional[Tuple[Tensor]] = None
     text_encoder_attentions: Optional[Tuple[Tensor]] = None
     text_encoder_hidden_states: Optional[Tuple[Tensor]] = None
     vision_encoder_attentions: Optional[Tuple[Tensor]] = None
@@ -130,6 +164,18 @@ class FLMRModelForRetrievalOutput(ModelOutput):
             The FLMR model outputs the *scores* that corresponds to the late-interaction scores of the input query and context. Each query is associated with `num_positive_examples` positive examples and `num_negative_examples` negative examples, and the scores are the late-interaction scores of the query and these examples.
         in_batch_negative_loss (`torch.FloatTensor` of shape `(batch_size, query_embedding_length, embeddings_size)`):
             The FLMR model outputs the *in_batch_negative_loss* which computes contrastive loss that includes in-batch negatives. For each positive example, all other examples in the batch except itself are considered negative examples in computing the contrastive loss. This improves ultimate performance in practice. This output is to be used in model training.
+        query_late_interaction_output (`torch.FloatTensor` of shape `(batch_size, query_embedding_length, embeddings_size)`):
+            The FLMR model outputs the *query_late_interaction_output* that corresponds to the late-interaction representations of the input query.
+        context_late_interaction_output (`torch.FloatTensor` of shape `(batch_size, context_embedding_length, embeddings_size)`):
+            The FLMR model outputs the *context_late_interaction_output* that corresponds to the late-interaction representations of the input context.
+        query_attentions (`Tuple[Tuple[Tensor]]`, *optional*):
+            Tuple of elements containing the attention weights of the query's layers. There are three sub-tuples in this tuple, corresponding to the attentions of the text encoder, vision encoder, and transformer mapping network. Each element in the sub-tuple is a tensor of shape `(batch_size, num_heads, sequence_length, sequence_length)`, with `sequence_length` being the sequence length in the corresponding encoder.
+        query_hidden_states (`Tuple[Tuple[Tensor]]`, *optional*):
+            Tuple of elements containing the hidden states of the query's layers. There are three sub-tuples in this tuple, corresponding to the hidden states of the text encoder, vision encoder, and transformer mapping network. Each element in the sub-tuple is a tensor of shape `(batch_size, sequence_length, hidden_size)`, with `sequence_length` being the sequence length in the corresponding encoder.
+        context_attentions (`Tuple[Tuple[Tensor]]`, *optional*):
+            Tuple of elements containing the attention weights of the context's layers. There are three sub-tuples in this tuple, corresponding to the attentions of the text encoder, vision encoder, and transformer mapping network. Each element in the sub-tuple is a tensor of shape `(batch_size, num_heads, sequence_length, sequence_length)`, with `sequence_length` being the sequence length in the corresponding encoder.
+        context_hidden_states (`Tuple[Tuple[Tensor]]`, *optional*):
+            Tuple of elements containing the hidden states of the context's layers. There are three sub-tuples in this tuple, corresponding to the hidden states of the text encoder, vision encoder, and transformer mapping network. Each element in the sub-tuple is a tensor of shape `(batch_size, sequence_length, hidden_size)`, with `sequence_length` being the sequence length in the corresponding encoder.
     """
 
     loss: torch.FloatTensor
@@ -278,6 +324,13 @@ FLMR_MODEL_INPUTS_DOCSTRING = r"""
             This can be set to `True` to additionally encode the context images with the vision encoder when context images are provided.
         context_concat_output_from_text_encoder (`bool`, *optional*):
             Whether or not to concatenate the output from the text encoder to the final context late-interaction representations. If `True`, the output from the text encoder is concatenated to the context representations. When using a pretrained model, this will be read from the model configuration. It should be set to `True` for FLMR and PreFLMR -style models.
+        return_dict (`bool`, *optional*):
+            Whether or not to return a [`~utils.ModelOutput`] instead of a plain tuple.
+        output_attentions (`bool`, *optional*):
+            Whether or not to return the attentions tensors of all attention layers. See `*_attentions` under returned
+            tensors for more detail.
+        output_hidden_states (`bool`, *optional*):
+            Whether or not to return the hidden states of all layers. See `*_hidden_states` under returned tensors for more detail.
 """
 
 
@@ -436,12 +489,16 @@ FLMR_VISION_ENCODERS_INPUTS_DOCSTRING = r"""
 """
 
 
-class MLP(nn.Module):
+class FLMRMultiLayerPerceptron(nn.Module):
+    """
+    A simple multi-layer perceptron with an activation function. This can be used as the mapping network in the FLMR model.
+    """
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.model(x)
 
     def __init__(self, sizes, bias=True, act=nn.Tanh):
-        super(MLP, self).__init__()
+        super(FLMRMultiLayerPerceptron, self).__init__()
         layers = []
         for i in range(len(sizes) - 1):
             layers.append(nn.Linear(sizes[i], sizes[i + 1], bias=bias))
@@ -492,7 +549,7 @@ class FLMRModelForRetrieval(FLMRPretrainedModelForRetrieval):
         self.text_encoder_embedding_size = self.config.text_config.hidden_size
         self.late_interaction_embedding_size = self.config.dim
 
-        self.context_vision_projection = MLP(
+        self.context_vision_projection = FLMRMultiLayerPerceptron(
             (
                 self.vision_encoder_embedding_size,
                 (self.late_interaction_embedding_size * self.mapping_network_prefix_length) // 2,
@@ -686,7 +743,7 @@ class FLMRModelForRetrieval(FLMRPretrainedModelForRetrieval):
          FLMRModelForRetrievalOutput(loss=tensor(0.0002, device='cuda:0', dtype=torch.float16,
         grad_fn=<NllLossBackward0>), scores=tensor([[38.9375, 30.0312],
          [36.9688, 28.7031]], device='cuda:0', dtype=torch.float16,
-        grad_fn=<ViewBackward0>), in_batch_negative_loss=tensor(0.6933, device='cuda:0', grad_fn=<NllLossBackward0>))
+        grad_fn=<ViewBackward0>), in_batch_negative_loss=tensor(0.6933, device='cuda:0', grad_fn=<NllLossBackward0>), query_late_interaction_output=tensor(...), context_late_interaction_output=tensor(...)
          ```
         """
 
@@ -1275,7 +1332,7 @@ class FLMRModelForRetrieval(FLMRPretrainedModelForRetrieval):
 
 
 @add_start_docstrings(
-    "The bare FLMR text encoder that can be used to generate late-interaction embeddings for texts in queries and contexts. ",
+    "The bare FLMR text encoder that can be used to generate late-interaction embeddings for texts in queries and contexts. This model is based on a `BertModel`. It can be used like a `BertModel` model for encoding text.",
     FLMR_TEXT_ENCODERS_INPUTS_DOCSTRING,
 )
 class FLMRTextModel(FLMRPreTrainedModel):
@@ -1342,7 +1399,7 @@ class FLMRTextModel(FLMRPreTrainedModel):
 
 
 @add_start_docstrings(
-    "The bare FLMR vision encoder that can be used to generate late-interaction embeddings for images in queries and contexts. ",
+    "The bare FLMR vision encoder that can be used to generate late-interaction embeddings for images in queries and contexts. This model is based on a `CLIPVisionModel`. It can be used like a `CLIPVisionModel` model for encoding images.",
     FLMR_VISION_ENCODERS_INPUTS_DOCSTRING,
 )
 class FLMRVisionModel(FLMRPreTrainedModel):

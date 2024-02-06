@@ -18,19 +18,28 @@ rendered properly in your Markdown viewer.
 
 ## Overview
 
-The FLMR model was proposed in [<INSERT PAPER NAME HERE>](<INSERT PAPER LINK HERE>) by <INSERT AUTHORS HERE>.
-<INSERT SHORT SUMMARY HERE>
+The FLMR model was proposed in [Fine-grained Late-interaction Multi-modal Retrieval for Retrieval Augmented Visual Question Answering](https://openreview.net/forum?id=IWWWulAX7g) by Weizhe Lin, Jinghong Chen, Jingbiao Mei, Alexandru Coca, and Bill Byrne.
+
+This work introduces Fine-grained Late-interaction Multi-modal Retrieval, FLMR, which achieved great performance on retrieving documents/passages for answering knowledge-intensive visually-grounded questions (such as [OK-VQA](https://okvqa.allenai.org/) and [InfoSeek](https://open-vision-language.github.io/infoseek/)). The model computes late-interaction scores between multi-modal query and context embeddings to achieve finer-grained embedding interaction.
 
 The abstract from the paper is the following:
 
-*<INSERT PAPER ABSTRACT HERE>*
+*Knowledge-based Visual Question Answering (KB-VQA) requires VQA systems to utilize knowledge from external knowledge bases to answer visually-grounded questions. Retrieval-Augmented Visual Question Answering (RA-VQA), a strong framework to tackle KB-VQA, first retrieves related documents with Dense Passage Retrieval (DPR) and then uses them to answer questions. This paper proposes Fine-grained Late-interaction Multi-modal Retrieval (FLMR) which significantly improves knowledge retrieval in RA-VQA. FLMR addresses two major limitations in RA-VQA's retriever: (1) the image representations obtained via image-to-text transforms can be incomplete and inaccurate and (2) similarity scores between queries and documents are computed with one-dimensional embeddings, which can be insensitive to finer-grained similarities. FLMR overcomes these limitations by obtaining image representations that complement those from the image-to-text transform using a vision model aligned with an existing text-based retriever through a simple alignment network. FLMR also encodes images and questions using multi-dimensional embeddings to capture finer-grained similarities between queries and documents. FLMR significantly improves the original RA-VQA retriever's PRRecall@5 by approximately 8%. Finally, we equipped RA-VQA with two state-of-the-art large multi-modal/language models to achieve 
+62% VQA score in the OK-VQA dataset.*
 
 Tips:
 
-<INSERT TIPS ABOUT MODEL HERE>
+There are several versions of FLMR available:
+- **FLMR**: available as `LinWeizheDragon/FLMR`. The original version of the proposed FLMR model, which uses 9 Regions-of-Interest to improve scene understanding.
+- **PreFLMR**: available as `LinWeizheDragon/PreFLMR_ViT-G`. The follow-up work of FLMR. PreFLMR was pretrained on a wide range of knowledge-intensive multi-modal retrieval tasks.
 
-This model was contributed by [INSERT YOUR HF USERNAME HERE](https://huggingface.co/<INSERT YOUR HF USERNAME HERE>).
-The original code can be found [here](<INSERT LINK TO GITHUB REPO HERE>).
+Applications:
+
+This Huggingface implementation is to be used with the [ColBERT](https://github.com/stanford-futuredata/ColBERT) engine. Examples of how to use FLMR to index a corpus and perform retrieval can be found in `examples/research_projects/flmr-retrieval`.
+Under this folder, the engine has been cleaned up and wrapped into a third-party package. Note that you should comply with the liscense of ColBERT if you use this provided third-party package.
+
+This model was contributed by [Weizhe Lin](https://huggingface.co/LinWeizheDragon).
+The original code can be found [here](https://github.com/LinWeizheDragon/Retrieval-Augmented-Visual-Question-Answering).
 
 
 ## FLMRConfig
@@ -45,21 +54,13 @@ The original code can be found [here](<INSERT LINK TO GITHUB REPO HERE>).
 
 [[autodoc]] FLMRContextEncoderTokenizerFast
 
-## FLMRTokenizer
+## FLMRQueryEncoderTokenizer
 
-[[autodoc]] FLMRTokenizer
+[[autodoc]] FLMRQueryEncoderTokenizer
 
-## FLMRTokenizerFast
+## FLMRQueryEncoderTokenizerFast
 
-[[autodoc]] FLMRTokenizerFast
-
-## FLMRReaderTokenizer
-
-[[autodoc]] FLMRReaderTokenizer
-
-## FLMRReaderTokenizerFast
-
-[[autodoc]] FLMRReaderTokenizerFast
+[[autodoc]] FLMRQueryEncoderTokenizerFast
 
 ## FLMR specific outputs
 
@@ -67,24 +68,26 @@ The original code can be found [here](<INSERT LINK TO GITHUB REPO HERE>).
 
 [[autodoc]] models.flmr.modeling_flmr.FLMRQuestionEncoderOutput
 
-[[autodoc]] models.flmr.modeling_flmr.FLMRReaderOutput
+[[autodoc]] models.flmr.modeling_flmr.FLMRModelForRetrievalOutput
 
 <frameworkcontent>
 <pt>
 
-## FLMRContextEncoder
+## FLMRModelForRetrieval
 
-[[autodoc]] FLMRContextEncoder
+[[autodoc]] FLMRModelForRetrieval
+    - forward
+    - query
+    - doc
+
+## FLMRTextModel
+
+[[autodoc]] FLMRTextModel
     - forward
 
-## FLMRQuestionEncoder
+## FLMRVisionModel
 
-[[autodoc]] FLMRQuestionEncoder
-    - forward
-
-## FLMRReader
-
-[[autodoc]] FLMRReader
+[[autodoc]] FLMRVisionModel
     - forward
 
 </pt>
