@@ -533,7 +533,7 @@ def load_state_dict(checkpoint_file: Union[str, os.PathLike]):
         return torch.load(
             checkpoint_file,
             map_location=map_location,
-            # weights_only=is_torch_greater_or_equal_than_1_13,
+            weights_only=is_torch_greater_or_equal_than_1_13,
             **extra_args,
         )
     except Exception as e:
