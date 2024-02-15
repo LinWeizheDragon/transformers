@@ -24,8 +24,8 @@ from ...utils import logging
 logger = logging.get_logger(__name__)
 
 FLMR_PRETRAINED_CONFIG_ARCHIVE_MAP = {
-    "BByrneLab/PreFLMR_ViT-G": "https://huggingface.co/BByrneLab/PreFLMR_ViT-G/resolve/main/config.json",
-    "BByrneLab/FLMR": "https://huggingface.co/BByrneLab/FLMR/resolve/main/config.json",
+    "LinWeizheDragon/PreFLMR_ViT-L": "https://huggingface.co/LinWeizheDragon/PreFLMR_ViT-L/resolve/main/config.json",
+    "LinWeizheDragon/FLMR": "https://huggingface.co/LinWeizheDragon/FLMR/resolve/main/config.json",
 }
 
 

@@ -26,53 +26,53 @@ VOCAB_FILES_NAMES = {"vocab_file": "vocab.txt", "tokenizer_file": "tokenizer_con
 
 CONTEXT_ENCODER_PRETRAINED_VOCAB_FILES_MAP = {
     "vocab_file": {
-        "BByrneLab/PreFLMR_ViT-G": (
-            "https://huggingface.co/BByrneLab/PreFLMR_ViT-G/resolve/main/context_tokenizer/vocab.txt"
+        "LinWeizheDragon/PreFLMR_ViT-L": (
+            "https://huggingface.co/LinWeizheDragon/PreFLMR_ViT-L/resolve/main/context_tokenizer/vocab.txt"
         ),
-        "BByrneLab/FLMR": ("https://huggingface.co/BByrneLab/FLMR/resolve/main/context_tokenizer/vocab.txt"),
+        "LinWeizheDragon/FLMR": ("https://huggingface.co/LinWeizheDragon/FLMR/resolve/main/context_tokenizer/vocab.txt"),
     },
     "tokenizer_file": {
-        "BByrneLab/PreFLMR_ViT-G": (
-            "https://huggingface.co/BByrneLab/PreFLMR_ViT-G/resolve/main/context_tokenizer/tokenizer_config.json"
+        "LinWeizheDragon/PreFLMR_ViT-L": (
+            "https://huggingface.co/LinWeizheDragon/PreFLMR_ViT-L/resolve/main/context_tokenizer/tokenizer_config.json"
         ),
-        "BByrneLab/FLMR": (
-            "https://huggingface.co/BByrneLab/FLMR/resolve/main/context_tokenizer/tokenizer_config.json"
+        "LinWeizheDragon/FLMR": (
+            "https://huggingface.co/LinWeizheDragon/FLMR/resolve/main/context_tokenizer/tokenizer_config.json"
         ),
     },
 }
 QUESTION_ENCODER_PRETRAINED_VOCAB_FILES_MAP = {
     "vocab_file": {
-        "BByrneLab/PreFLMR_ViT-G": (
-            "https://huggingface.co/BByrneLab/PreFLMR_ViT-G/resolve/main/query_tokenizer/vocab.txt"
+        "LinWeizheDragon/PreFLMR_ViT-L": (
+            "https://huggingface.co/LinWeizheDragon/PreFLMR_ViT-L/resolve/main/query_tokenizer/vocab.txt"
         ),
-        "BByrneLab/FLMR": ("https://huggingface.co/BByrneLab/FLMR/resolve/main/query_tokenizer/vocab.txt"),
+        "LinWeizheDragon/FLMR": ("https://huggingface.co/LinWeizheDragon/FLMR/resolve/main/query_tokenizer/vocab.txt"),
     },
     "tokenizer_file": {
-        "BByrneLab/PreFLMR_ViT-G": (
-            "https://huggingface.co/BByrneLab/PreFLMR_ViT-G/resolve/main/query_tokenizer/tokenizer_config.json"
+        "LinWeizheDragon/PreFLMR_ViT-L": (
+            "https://huggingface.co/LinWeizheDragon/PreFLMR_ViT-L/resolve/main/query_tokenizer/tokenizer_config.json"
         ),
-        "BByrneLab/FLMR": ("https://huggingface.co/BByrneLab/FLMR/resolve/main/query_tokenizer/tokenizer_config.json"),
+        "LinWeizheDragon/FLMR": ("https://huggingface.co/LinWeizheDragon/FLMR/resolve/main/query_tokenizer/tokenizer_config.json"),
     },
 }
 
 
 CONTEXT_ENCODER_PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES = {
-    "BByrneLab/PreFLMR_ViT-G": 512,
-    "BByrneLab/FLMR": 512,
+    "LinWeizheDragon/PreFLMR_ViT-L": 512,
+    "LinWeizheDragon/FLMR": 512,
 }
 QUESTION_ENCODER_PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES = {
-    "BByrneLab/PreFLMR_ViT-G": 512,
-    "BByrneLab/FLMR": 512,
+    "LinWeizheDragon/PreFLMR_ViT-L": 512,
+    "LinWeizheDragon/FLMR": 512,
 }
 
 
 CONTEXT_ENCODER_PRETRAINED_INIT_CONFIGURATION = {
-    "BByrneLab/PreFLMR_ViT-G": {"do_lower_case": True},
-    "BByrneLab/FLMR": {"do_lower_case": True},
+    "LinWeizheDragon/PreFLMR_ViT-L": {"do_lower_case": True},
+    "LinWeizheDragon/FLMR": {"do_lower_case": True},
 }
 QUESTION_ENCODER_PRETRAINED_INIT_CONFIGURATION = {
-    "BByrneLab/PreFLMR_ViT-G": {"do_lower_case": True},
-    "BByrneLab/FLMR": {"do_lower_case": True},
+    "LinWeizheDragon/PreFLMR_ViT-L": {"do_lower_case": True},
+    "LinWeizheDragon/FLMR": {"do_lower_case": True},
 }
 
 

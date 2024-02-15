@@ -39,10 +39,40 @@ Install other dependencies
 pip install ujson gitpython easydict ninja datasets
 ```
 
+## FLMR
+```
+cd transformers/examples/research_projects/flmr-retrieval/
+```
+
+Download `KBVQA_data` from [here](https://huggingface.co/datasets/BByrneLab/RAVQAV2Data) and unzip the image folders.
+
+Run the following command:
+
+```
+python example_use_flmr.py \
+            --use_gpu --run_indexing \
+            --index_root_path "." \
+            --index_name OKVQA_GS\
+            --experiment_name OKVQA_GS \
+            --indexing_batch_size 64 \
+            --image_root_dir /path/to/KBVQA_data/ok-vqa/ \
+            --dataset_path LinWeizheDragon/OKVQA_FLMR_preprocessed_data \
+            --passage_dataset_path LinWeizheDragon/OKVQA_FLMR_preprocessed_GoogleSearch_passages \
+            --use_split test \
+            --nbits 8 \
+            --Ks 1 5 10 20 50 100 \
+            --checkpoint_path LinWeizheDragon/FLMR \
+            --image_processor_name openai/clip-vit-base-patch32 \
+            --query_batch_size 8 \
+            --num_ROIs 9 \
+```
+
 ## Use PreFLMR
 ```
 cd transformers/examples/research_projects/flmr-retrieval/
 ```
+
+Run the following command:
 
 ```
 python example_use_preflmr.py \

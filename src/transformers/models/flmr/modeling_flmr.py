@@ -50,11 +50,11 @@ from .flmr_utils import (
 logger = logging.get_logger(__name__)
 
 _CONFIG_FOR_DOC = "FLMRConfig"
-_CHECKPOINT_FOR_DOC = "BByrneLab/PreFLMR_ViT-G"
+_CHECKPOINT_FOR_DOC = "LinWeizheDragon/PreFLMR_ViT-L"
 
 
 FLMR_PRETRAINED_MODEL_ARCHIVE_LIST = [
-    "BByrneLab/PreFLMR_ViT-G",
+    "LinWeizheDragon/PreFLMR_ViT-L",
     "LinWeizheDragon/FLMR",
     # See all FLMR models at https://huggingface.co/models?filter=flmr
 ]
@@ -713,10 +713,11 @@ class FLMRModelForRetrieval(FLMRPretrainedModelForRetrieval):
          Examples:
 
          ```python
+         >>> import torch
          >>> from transformers import FLMRQueryEncoderTokenizer, FLMRContextEncoderTokenizer, FLMRModelForRetrieval, AutoImageProcessor
 
-         >>> checkpoint_path = "LinWeizheDragon/PreFLMR_ViT-G"
-         >>> image_processor_name = "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
+         >>> checkpoint_path = "LinWeizheDragon/PreFLMR_ViT-L"
+         >>> image_processor_name = "openai/clip-vit-large-patch14"
          >>> query_tokenizer = FLMRQueryEncoderTokenizer.from_pretrained(checkpoint_path, subfolder="query_tokenizer")
          >>> context_tokenizer = FLMRContextEncoderTokenizer.from_pretrained(checkpoint_path, subfolder="context_tokenizer")
 
@@ -726,10 +727,10 @@ class FLMRModelForRetrieval(FLMRPretrainedModelForRetrieval):
                                                          ).to("cuda")
          >>> image_processor = AutoImageProcessor.from_pretrained(image_processor_name)
 
-         >>> Q_encoding = query_tokenizer(["Using the provided image, obtain documents that address the subsequent question: What is the capital of France?", "Extract documents linked to the question provided in conjunction with the image: What is the capital of France?"])
+         >>> Q_encoding = query_tokenizer(["Using the provided image, obtain documents that address the subsequent question: What is the capital of France?", "Extract documents linked to the question provided in conjunction with the image: What is the capital of China?"])
          >>> D_encoding = context_tokenizer(["Paris is the capital of France.", "Beijing is the capital of China.",
                                      "Paris is the capital of France.", "Beijing is the capital of China."])
-         >>> Q_pixel_values = torch.randn(2, 3, 224, 224)
+         >>> Q_pixel_values = torch.zeros(2, 3, 224, 224)
          >>> inputs = dict(
                  query_input_ids=Q_encoding['input_ids'],
                  query_attention_mask=Q_encoding['attention_mask'],
@@ -739,11 +740,11 @@ class FLMRModelForRetrieval(FLMRPretrainedModelForRetrieval):
                  use_in_batch_negatives=True,
              )
 
-         >>> flmr_model.forward(**inputs)
-         FLMRModelForRetrievalOutput(loss=tensor(0.0002, device='cuda:0', dtype=torch.float16,
-        grad_fn=<NllLossBackward0>), scores=tensor([[38.9375, 30.0312],
-         [36.9688, 28.7031]], device='cuda:0', dtype=torch.float16,
-        grad_fn=<ViewBackward0>), in_batch_negative_loss=tensor(0.6933, device='cuda:0', grad_fn=<NllLossBackward0>), query_late_interaction_output=tensor(...), context_late_interaction_output=tensor(...)
+         >>> model.forward(**inputs)
+         FLMRModelForRetrievalOutput(loss=tensor(4.5000, device='cuda:0', dtype=torch.float16,
+       grad_fn=<NllLossBackward0>), scores=tensor([[44.2188, 40.6562],
+        [39.4375, 48.4062]], device='cuda:0', dtype=torch.float16,
+        grad_fn=<ViewBackward0>), in_batch_negative_loss=tensor(5.1994, device='cuda:0', grad_fn=<NllLossBackward0>), query_late_interaction_output=tensor(...), context_late_interaction_output=tensor(...)
          ```
         """
 
@@ -1416,8 +1417,8 @@ class FLMRVisionModel(FLMRPreTrainedModel):
     def get_input_embeddings(self) -> nn.Module:
         return self.vision_model.vision_model.embeddings.patch_embedding
 
-    # @add_start_docstrings_to_model_forward(CLIP_VISION_INPUTS_DOCSTRING)
-    # @replace_return_docstrings(output_type=BaseModelOutputWithPooling, config_class=CLIPVisionConfig)
+    @add_start_docstrings_to_model_forward(FLMR_VISION_ENCODERS_INPUTS_DOCSTRING)
+    @replace_return_docstrings(output_type=BaseModelOutputWithPooling, config_class=FLMRVisionConfig)
     def forward(
         self,
         pixel_values: Optional[torch.FloatTensor] = None,
@@ -1433,9 +1434,9 @@ class FLMRVisionModel(FLMRPreTrainedModel):
         ```python
         >>> from PIL import Image
         >>> import requests
-        >>> from transformers import AutoProcessor, CLIPVisionModel
+        >>> from transformers import AutoProcessor, FLMRVisionModel
 
-        >>> model = CLIPVisionModel.from_pretrained("openai/clip-vit-base-patch32")
+        >>> model = FLMRVisionModel.from_pretrained("openai/clip-vit-base-patch32")
         >>> processor = AutoProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
         >>> url = "http://images.cocodataset.org/val2017/000000039769.jpg"

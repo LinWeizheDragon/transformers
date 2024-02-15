@@ -18,7 +18,7 @@ rendered properly in your Markdown viewer.
 
 ## Overview
 
-The FLMR model was proposed in [Fine-grained Late-interaction Multi-modal Retrieval for Retrieval Augmented Visual Question Answering](https://openreview.net/forum?id=IWWWulAX7g) by Weizhe Lin, Jinghong Chen, Jingbiao Mei, Alexandru Coca, and Bill Byrne.
+The FLMR model was proposed in [Fine-grained Late-interaction Multi-modal Retrieval for Retrieval Augmented Visual Question Answering](https://openreview.net/forum?id=IWWWulAX7g) by Weizhe Lin, Jinghong Chen, Jingbiao Mei, Alexandru Coca, and Bill Byrne. 
 
 This work introduces Fine-grained Late-interaction Multi-modal Retrieval, FLMR, which achieved great performance on retrieving documents/passages for answering knowledge-intensive visually-grounded questions (such as [OK-VQA](https://okvqa.allenai.org/) and [InfoSeek](https://open-vision-language.github.io/infoseek/)). The model computes late-interaction scores between multi-modal query and context embeddings to achieve finer-grained embedding interaction.
 
@@ -31,7 +31,7 @@ Tips:
 
 There are several versions of FLMR available:
 - **FLMR**: available as `LinWeizheDragon/FLMR`. The original version of the proposed FLMR model, which uses 9 Regions-of-Interest to improve scene understanding.
-- **PreFLMR**: available as `LinWeizheDragon/PreFLMR_ViT-G`. The follow-up work of FLMR. PreFLMR was pretrained on a wide range of knowledge-intensive multi-modal retrieval tasks.
+- **PreFLMR**: available as `LinWeizheDragon/PreFLMR_ViT-G`/`LinWeizheDragon/PreFLMR_ViT-H`/`LinWeizheDragon/PreFLMR_ViT-L`/`LinWeizheDragon/PreFLMR_ViT-B`. The follow-up work of FLMR. PreFLMR was pretrained on a wide range of knowledge-intensive multi-modal retrieval tasks. PreFLMR was proposed in [PreFLMR: Scaling Up Fine-Grained Late-Interaction Multi-modal Retrievers](https://arxiv.org/abs/2402.08327) by Weizhe Lin, Jingbiao Mei, Jinghong Chen, and Bill Byrne.
 
 Applications:
 
@@ -66,7 +66,7 @@ The original code can be found [here](https://github.com/LinWeizheDragon/Retriev
 
 [[autodoc]] models.flmr.modeling_flmr.FLMRContextEncoderOutput
 
-[[autodoc]] models.flmr.modeling_flmr.FLMRQuestionEncoderOutput
+[[autodoc]] models.flmr.modeling_flmr.FLMRQueryEncoderOutput
 
 [[autodoc]] models.flmr.modeling_flmr.FLMRModelForRetrievalOutput
 
